@@ -1,0 +1,96 @@
+module 'list_pattern_match' ['module_info'/0,
+			     'module_info'/1]
+    attributes [%% Line 1
+		'file' =
+		    %% Line 1
+		    [{[108|[105|[115|[116|[95|[112|[97|[116|[116|[101|[114|[110|[95|[109|[97|[116|[99|[104|[46|[101|[114|[108]]]]]]]]]]]]]]]]]]]]]],1}]]
+'main'/0 =
+    %% Line 3
+    fun () ->
+	case <> of
+	  <> when 'true' ->
+	      let <_5,X,Y,Z> =
+		  case %% Line 4
+		       [1|[2|[3]]] of
+		    %% Line 5
+		    <[X|[Y|[Z|[]]]]> when 'true' ->
+			let <_3> =
+			    call 'erlang':'+'
+				(X, Y)
+			in  <call 'erlang':'+'
+				 (_3, Z),X,Y,Z>
+		    ( <_4> when 'true' ->
+			  %% Line 4
+			  primop 'match_fail'
+			      ({'case_clause',_4})
+		      -| ['compiler_generated'] )
+		  end
+	      in  let <_2> =
+		      case %% Line 7
+			   [1|[2|[3]]] of
+			%% Line 8
+			<[_7|[_8|[_9|[]]]]>
+			    when let <_12> =
+				  call 'erlang':'=:='
+				      (_7, X)
+			      in  let <_10> =
+				      call 'erlang':'=:='
+					  (_8, Y)
+				  in  let <_11> =
+					  call 'erlang':'=:='
+					      (_9, Z)
+				      in  let <_13> =
+					      call 'erlang':'and'
+						  (_10, _11)
+					  in  call 'erlang':'and'
+						  (_12, _13) ->
+			    let <_0> =
+				call 'erlang':'+'
+				    (X, Y)
+			    in  call 'erlang':'+'
+				    (_0, Z)
+			( <_1> when 'true' ->
+			      %% Line 7
+			      primop 'match_fail'
+				  ({'case_clause',_1})
+			  -| ['compiler_generated'] )
+		      end
+		  in  let <_6> =
+			  call %% Line 6
+			       'erlang':%% Line 6
+					'+'
+			      (_5, _2)
+		      in  %% Line 9
+			  call 'erlang':'=='
+			      (_6, 12)
+	  ( <> when 'true' ->
+		( primop 'match_fail'
+		      ({'function_clause'})
+		  -| [{'function_name',{'main',0}}] )
+	    -| ['compiler_generated'] )
+	end
+'module_info'/0 =
+    fun () ->
+	case <> of
+	  <> when 'true' ->
+	      call 'erlang':'get_module_info'
+		  ('list_pattern_match')
+	  ( <> when 'true' ->
+		( primop 'match_fail'
+		      ({'function_clause'})
+		  -| [{'function_name',{'module_info',0}}] )
+	    -| ['compiler_generated'] )
+	end
+'module_info'/1 =
+    fun (_0) ->
+	case _0 of
+	  <X> when 'true' ->
+	      call 'erlang':'get_module_info'
+		  ('list_pattern_match', X)
+	  ( <_1> when 'true' ->
+		( primop 'match_fail'
+		      ({'function_clause',_1})
+		  -| [{'function_name',{'module_info',1}}] )
+	    -| ['compiler_generated'] )
+	end
+end
