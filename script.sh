@@ -2,7 +2,6 @@
 
 # ==============================================================================
 
-# KDIR=/home/daniel/erlang-refactoring/erlang-semantics/erl_env
 KDIR=""
 COQDIR=/mnt/c/Users/petib/Desktop/CEF_master/Core-Erlang-Formalization/src
 #COQDIR=/mnt/c/Users/petib/Desktop/Core-Erlang-Formalization/src
