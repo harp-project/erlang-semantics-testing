@@ -268,7 +268,7 @@ test_all()
   echo " - K INCORRECT    : ${result[2]}"
   echo " - COQ ERROR      : ${result[3]}"
   echo " - COQ INCORRECT  : ${result[4]}"
-	echo " - ERLANG FAILED  : ${result[5]}"
+  echo " - ERLANG FAILED  : ${result[5]}"
   echo ""
 }
 
@@ -280,7 +280,7 @@ test_corrects()
 	compile_converter
   for f in "${COR_TESTS[@]}"; do
   use_test_case $f
-  if execute_and_check; then ((c++)); fi
+  if execute_and_check 1; then ((c++)); fi
   done
   echo "STATISTICS: $c/$n"
 }
