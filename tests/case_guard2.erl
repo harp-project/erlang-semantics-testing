@@ -1,3 +1,6 @@
+-module(case_guard2).
+-export([main/0]).
+
 main() ->
   case {2,3} of
     {A,B} when A < B -> A;

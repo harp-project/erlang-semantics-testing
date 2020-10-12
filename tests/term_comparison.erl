@@ -1,3 +1,6 @@
+-module(term_comparison).
+-export([main/0]).
+
 main() -> 
   12 < alma andalso
   12 < {1,2} andalso

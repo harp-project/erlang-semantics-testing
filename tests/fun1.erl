@@ -1,3 +1,6 @@
+-module(fun1).
+-export([main/0]).
+
 f(X) -> X * 2.
 
 main() ->

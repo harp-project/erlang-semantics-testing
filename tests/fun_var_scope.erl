@@ -1,3 +1,6 @@
+-module(fun_var_scope).
+-export([main/0]).
+
 main() ->
   begin
     X = 1,

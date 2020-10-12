@@ -60,11 +60,9 @@ generate_random_program()
 use_test_case()
 {
 	hdline
-  echo "### Using test case $1..."
-  echo ""
-  echo "-module(module1)." > module1.erl
-  echo "-export([main/0])." >> module1.erl
-  cat $1 >> module1.erl
+    echo "### Using test case $1..."
+    echo ""
+    cat $1 >> module1.erl
 }
 
 execute_k()

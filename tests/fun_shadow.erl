@@ -1,3 +1,6 @@
+-module(fun_shadow).
+-export([main/0]).
+
 main() ->
   begin
     X = 4,

@@ -1,3 +1,6 @@
+-module(listcomp_shadow1).
+-export([main/0]).
+
 main() ->
   begin
     X = 1,

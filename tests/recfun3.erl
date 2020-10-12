@@ -1,3 +1,6 @@
+-module(recfun3).
+-export([main/0]).
+
 main() ->
  begin
     Foo = 1,

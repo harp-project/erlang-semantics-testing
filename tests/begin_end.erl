@@ -1,3 +1,6 @@
+-module(begin_end).
+-export([main/0]).
+
 f(A,B) -> A + B.
 
 main() ->

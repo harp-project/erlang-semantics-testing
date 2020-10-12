@@ -1,3 +1,6 @@
+-module(implicit_fun3).
+-export([main/0]).
+
 f(X,Y,Z) -> X + Y + Z.
 
 main() -> 

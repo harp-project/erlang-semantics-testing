@@ -1,3 +1,6 @@
+-module(recfun2).
+-export([main/0]).
+
 main() ->
   begin
     Fact = 1,

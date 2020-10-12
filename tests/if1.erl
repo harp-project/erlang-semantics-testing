@@ -1,3 +1,6 @@
+-module(if1).
+-export([main/0]).
+
 f() -> ok.
 
 main() ->

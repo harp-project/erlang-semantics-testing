@@ -1,3 +1,6 @@
+-module(list_substract2).
+-export([main/0]).
+
 main() -> 
   [] -- [1,2,3] == [] andalso
   [1,2,3] -- [4,5] == [1,2,3] andalso
