@@ -1,59 +1,74 @@
 -module(cst_to_ast).
--export([from_core/1, from_erl/1]).
+-export([from_core/2, from_erl/2]).
 -include_lib("compiler/src/core_parse.hrl").
 
--define(template,
+-define(tranditional,
 "Require Core_Erlang_Tactics.
 Import Core_Erlang_Tactics.Tactics.
 Import Core_Erlang_Syntax.Value_Notations.
 Import Core_Erlang_Semantics.Semantics.
 Import ListNotations.
+\n
+Notation \"%% v\" := (inl [v]) (at level 50).
 \n 
-Goal exists res, ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) []) --e-> res.
+Goal exists res, ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) []))) --e-> res.
 Proof.
 eexists.
 match goal with
 | |- ?a => assert a as Main
-end. { apply eval_expr_intro. eexists. eexists. timeout 2400 solve. }
+end. { apply eval_expr_intro. eexists. eexists. timeout 240 solve. }
 simpl in *. unfold ttrue, ffalse, ok in *. Check Main. exact Main.
 Abort. \n\n
 \n").
 
-from_erl(Path)  -> do_pp(compile:file(Path, [           to_core, binary])).
-from_core(Path) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt])).
+-define(functional,
+"Require Core_Erlang_Functional_Big_Step.
+Import Core_Erlang_Functional_Big_Step.Functional_Big_Step.
+Import Core_Erlang_Syntax.Value_Notations.
+Import ListNotations.
+\n 
+Compute result_value (fbs_expr 100000 [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
+\n").
 
-do_pp(V) ->
+from_erl(Path, UseFunctional)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), UseFunctional).
+from_core(Path, UseFunctional) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), UseFunctional).
+
+do_pp(V, UseFunctional) ->
   case V of
-    {ok, _, CST     } -> io:format(?template, [pp(CST)]);
-    {ok, _, CST, _Ws} -> io:format(?template, [pp(CST)]);
+    {ok, _, CST     } -> io:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
+    {ok, _, CST, _Ws} -> io:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
   
 %% Adding module functions to letrec
 
+pp_expr(#c_values{es=Es}) -> "(EValues [" ++ pp_list(Es, ";", fun pp/1) ++ "])";
+pp_expr(E) -> io_lib:format("(ESingle ~s)", [pp(E)]).
+
 pp(#c_module{defs=Ds}) ->
 	pp_list(Ds,";",fun ({_FunId,Body}) -> io_lib:format("(~s,~s)",[pp_letrec_sign(_FunId), pp(Body, ok)]) end);
 
 %% Pretty Printing Expressions
 
-pp(#c_values{es=Es}) ->
-  "[" ++ pp_list(Es, ";", fun pp/1) ++ "]";
+%Solved in pp_expr.
+%pp(#c_values{es=Es}) ->
+%  "(EValues [" ++ pp_list(Es, ";", fun pp/1) ++ "])";
 
 pp(#c_primop{name=N, args=As}) ->
-  io_lib:format("(ECall ~s [~s])", [pp_var(N), pp_list(As,";", fun pp/1)]);
-
-pp(#c_case{arg=#c_values{es=Es}, clauses=Cs}) ->
-  io_lib:format("(ECase [~s] [~s])", [pp_list(Es, ";", fun pp/1), pp_list(Cs, ";", fun pp/1)]);
+  io_lib:format("(EPrimOp ~s [~s])", [pp_var(N), pp_list(As,";", fun pp_expr/1)]);
 
 pp(#c_case{arg=A, clauses=Cs}) ->
-  io_lib:format("(ECase [~s] [~s])", [pp(A), pp_list(Cs, ";", fun pp/1)]);
+  io_lib:format("(ECase ~s [~s])", [pp_expr(A), pp_list(Cs, ";", fun pp/1)]);
+
+%pp(#c_case{arg=A, clauses=Cs}) ->
+%  io_lib:format("(ECase ~s [~s])", [pp_expr(A), pp_list(Cs, ";", fun pp/1)]);
 
 pp(#c_clause{pats=Ps, guard=G, body=B}) ->
-  io_lib:format("([~s], ~s, ~s)", [pp_list(Ps,";", fun pp_pattern/1), pp(G), pp(B)]);
+  io_lib:format("([~s], ~s, ~s)", [pp_list(Ps,";", fun pp_pattern/1), pp_expr(G), pp_expr(B)]);
 
 pp(#c_apply{op=O, args=As}) ->
-  io_lib:format("(EApp ~s [~s])", [pp(O), pp_list(As,";", fun pp/1)]);
+  io_lib:format("(EApp ~s [~s])", [pp_expr(O), pp_list(As,";", fun pp_expr/1)]);
 
 pp(#c_literal{val=V}) when is_list(V) ->
   pp_cons(V);
@@ -65,8 +80,7 @@ pp(#c_literal{val=V}) when is_integer(V) ->
 pp(#c_literal{val=V}) when is_map(V) ->
   io_lib:format("(EMap [~s])", [pp_list(maps:to_list(V), ";", fun pp_pair/1)]);
 pp(#c_literal{val=T}) when is_tuple(T) ->
-  io_lib:format("(ETuple [~s])", [pp_list(tuple_to_list(T),";", fun pp/1)]);
-
+  io_lib:format("(ETuple [~s])", [pp_list(tuple_to_list(T),";", fun pp_expr/1)]);
 pp(#c_var{name=N}) when is_atom(N) ->
   "(EVar \"" ++ atom_to_list(N) ++ "\"%string)";
 pp(#c_var{name=N}) when is_integer(N) ->
@@ -75,44 +89,50 @@ pp(#c_var{name={N, A}}) ->
   io_lib:format("(EFunId (\"~s\"%string, ~s))", [atom_to_list(N), integer_to_list(A)]);
 
 pp(#c_fun{vars=Vs, body=B}) ->
-  io_lib:format("(EFun [~s] ~s)", [pp_list(Vs,";", fun pp_var/1), pp(B)]);
+  io_lib:format("(EFun [~s] ~s)", [pp_list(Vs,";", fun pp_var/1), pp_expr(B)]);
 
 %% If only one expression is bound (which is not in a value list)
-pp(#c_let{vars=[D], arg=A, body=B}) ->
-  io_lib:format("(ELet [(~s, ~s)] ~s)", [pp_var(D), pp(A), pp(B)]);
+pp(#c_let{vars=Ds, arg=A, body=B}) ->
+  io_lib:format("(ELet [~s] ~s ~s)", [pp_list(Ds,";", fun pp_var/1), pp_expr(A), pp_expr(B)]);
 
-pp(#c_let{vars=Ds, arg=#c_values{es=Es}, body=B}) ->
-  io_lib:format("(ELet [~s] ~s)",[pp_list(lists:zip(Ds, Es), ";", fun({V, E}) -> io_lib:format("(~s,~s)", [pp_var(V),pp(E)]) end), pp(B)]);
+%pp(#c_let{vars=Ds, arg=#c_values{es=Es}, body=B}) ->
+%  io_lib:format("(ELet [~s] (EValues [~s]) ~s)",[pp_list(Ds,";", fun pp_var/1), pp_list(Es,";", fun pp/1), pp_expr(B)]);
 
 pp(#c_letrec{defs=Ds, body=B}) ->
-  io_lib:format("(ELetRec [~s] ~s)", [pp_list(Ds, ";", fun pp_letrec_defs/1), pp(B)]);
+  io_lib:format("(ELetRec [~s] ~s)", [pp_list(Ds, ";", fun pp_letrec_defs/1), pp_expr(B)]);
 
 pp(#c_cons{hd=Hd,tl=Tl}) ->
   pp_cons([Hd|Tl]);
-
+  
+%% Correct call formalization (for future syntax)
+%pp(#c_call{name=N, module=M args=Es}) ->
+%  io_lib:format("(ECall ~s ~s [~s])", [pp_expr(M), pp_expr(N), pp_list(Es,";", fun pp_expr/1)]);
 pp(#c_call{name=N,args=Es}) ->
-	io_lib:format("(ECall ~s [~s])", [pp_var(N), pp_list(Es,";", fun pp/1)]);
+	io_lib:format("(ECall ~s [~s])", [pp_var(N), pp_list(Es,";", fun pp_expr/1)]);
 
 pp(#c_tuple{es=Es}) ->
-  io_lib:format("(ETuple [~s])", [pp_list(Es,";", fun pp/1)]);
+  io_lib:format("(ETuple [~s])", [pp_list(Es,";", fun pp_expr/1)]);
 
 pp(#c_map{arg=_, es=Es,is_pat=_}) ->
   io_lib:format("(EMap [~s])",[pp_list(Es,";", fun pp/1)]);
 
 pp(#c_map_pair{op=#c_literal{val=assoc}, key=K, val=V}) ->
-  io_lib:format("(~s, ~s)",[pp(K),pp(V)]);
+  io_lib:format("(~s, ~s)",[pp_expr(K),pp_expr(V)]);
 
 pp(#c_map_pair{op=#c_literal{val=exact}, key=K, val=V}) ->
-  io_lib:format("(~s, ~s)",[pp(K),pp(V)]);
+  io_lib:format("(~s, ~s)",[pp_expr(K),pp_expr(V)]);
 
 pp(#c_seq{arg=A, body=B}) ->
-  io_lib:format("(ESeq ~s ~s)",[pp(A),pp(B)]);
+  io_lib:format("(ESeq ~s ~s)",[pp_expr(A),pp_expr(B)]);
+
+pp(#c_try{arg=A, vars=Vs, body=B, evars=Evs, handler=H}) ->
+	io_lib:format("(ETry ~s [~s] ~s [~s] ~s)",[pp_expr(A), pp_list(Vs,";", fun pp_var/1), pp_expr(B), pp_list(Evs,";", fun pp_var/1), pp_expr(H)]);
 
 %% If only one expression is bound (which is not in a value list)
-pp(#c_try{arg=A, vars=[V], body=B, evars=Evs, handler=H}) ->
-	io_lib:format("(ETry [(~s, ~s)] ~s ~s ~s)",[pp(A), pp_var(V), pp(B), pp(H), pp_try_vex(Evs)]);
-pp(#c_try{arg=#c_values{es=Es}, vars=Vs, body=B, evars=Evs, handler=H}) ->
-	io_lib:format("(ETry [~s] ~s ~s ~s)",[pp_list(lists:zip(Es, Vs), ";", fun({E, V}) -> io_lib:format("(~s,~s)", [pp(E),pp_var(V)]) end),pp(B),pp(H),pp_try_vex(Evs)]);
+%pp(#c_try{arg=A, vars=[V], body=B, evars=Evs, handler=H}) ->
+%	io_lib:format("(ETry ~s [~s] ~s [~s] ~s)",[pp_expr(A), pp_var(V), pp_expr(B), pp_list(Evs,";", fun pp_var/1), pp_expr(H)]);
+%pp(#c_try{arg=#c_values{es=Es}, vars=Vs, body=B, evars=Evs, handler=H}) ->
+%	io_lib:format("(ETry (EValues [~s]) [~s] ~s ~s ~s)",[pp_list(Es,";", fun pp/1), pp_list(Vs,";", fun pp_var/1), pp_expr(B),pp_list(Evs,";", fun pp_var/1)], pp_expr(H));
 
 pp(I) when is_integer(I) ->
   "(ELit (Integer (" ++ integer_to_list(I) ++ ")))";
@@ -123,7 +143,7 @@ pp(V) when is_list(V) ->
 pp(V) when is_map(V) ->
   io_lib:format("(EMap [~s])", [pp_list(maps:to_list(V), ";", fun pp_pair/1)]);
 pp(T) when is_tuple(T) ->
-  io_lib:format("(ETuple [~s])", [pp_list(tuple_to_list(T),";", fun pp/1)]);
+  io_lib:format("(ETuple [~s])", [pp_list(tuple_to_list(T),";", fun pp_expr/1)]);
 
 pp(_X) ->
   io:format("\n\n\nunsupported case: ~p\n\n\n", [_X]),
@@ -132,7 +152,7 @@ pp(_X) ->
 %% Function printing without EFun and varlist
 
 pp(#c_fun{vars=Vs, body=B}, _) ->
-  io_lib:format("([~s], ~s)", [pp_list(Vs, ";", fun pp_var/1), pp(B)]);
+  io_lib:format("([~s], ~s)", [pp_list(Vs, ";", fun pp_var/1), pp_expr(B)]);
 pp(_, _) -> todo.
 
 %% PP helpers for expressions
@@ -153,18 +173,15 @@ pp_letrec_defs({A, B}) ->
 pp_letrec_sign(#c_var{name={N, A}}) ->
   io_lib:format("(\"~s\"%string, ~s)", [atom_to_list(N), integer_to_list(A)]).
 pp_letrec_ve(#c_fun{vars=Vs, body=B}) ->
-  io_lib:format("([~s], ~s)", [pp_list(Vs, ";", fun pp_var/1), pp(B)]).
+  io_lib:format("([~s], ~s)", [pp_list(Vs, ";", fun pp_var/1), pp_expr(B)]).
 
 pp_cons([]) ->
   "ENil";
 pp_cons([A|B]) ->
-  io_lib:format("(ECons ~s ~s)", [pp(A),pp(B)]).
+  io_lib:format("(ECons ~s ~s)", [pp_expr(A),pp_expr(B)]).
 
-pp_pair({A, B}) -> io_lib:format("(~s,~s)", [pp(A),pp(B)]).
+pp_pair({A, B}) -> io_lib:format("(~s,~s)", [pp_expr(A),pp_expr(B)]).
 
-pp_try_vex([A,B]) -> io_lib:format("(~s) (~s) \"_dummyvar\"%string", [pp_var(A),pp_var(B)]);
-pp_try_vex([A,B,C]) -> io_lib:format("(~s) (~s) (~s)", [pp_var(A),pp_var(B),pp_var(C)]);
-pp_try_vex(V) -> throw({unsupported_case, V}).
 
 
 %% Pretty Printing Patterns

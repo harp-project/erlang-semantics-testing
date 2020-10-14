@@ -1,6 +1,3 @@
--module(m).
--export([main/0]).
-
 main() ->
   case [5, 6, 7, 8 | 9] of
     5 when 'true' -> 3;

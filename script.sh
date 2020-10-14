@@ -3,9 +3,11 @@
 # ==============================================================================
 
 KDIR=""
-COQDIR=/mnt/c/Users/petib/Desktop/CEF_master/Core-Erlang-Formalization/src
+COQDIR=/mnt/f/Phd/Core-Erlang-Formalization/src
 #COQDIR=/mnt/c/Users/petib/Desktop/Core-Erlang-Formalization/src
 # COQDIR=""
+# Use functional semantics or traditional (true -> functional, false -> traditional)
+FUNCTIONAL=true
 
 export result=(0 0 0 0 0 0)
 
@@ -30,13 +32,13 @@ COR_TESTS=(
             tests/listcomp1.erl \
             tests/listcomp2.erl \
             tests/listcomp3.erl \
-			tests/listcomp4.erl \
+            tests/listcomp4.erl \
             tests/list_comparison1.erl \
             tests/list_comparison2.erl \
             tests/list_comparison3.erl \
             tests/list_pattern_match2.erl \
             tests/list_substract2.erl \
-			tests/listcomp_shadow1.erl \
+            tests/listcomp_shadow1.erl \
             tests/term_comparison.erl
           )
 
@@ -48,21 +50,21 @@ hdline() { echo "============================================================"; 
 generate_random_program()
 {
 	local num=$1
-    echo "### Generating a random program..."
-    echo "-module(module$num)." > "module$num.erl"
-    echo "-export([main/0])." >> "module$num.erl"
-    erl -pa eqc-2.01.0/ebin -pa generator/ebin -noshell -eval "random:seed(erlang:now()), io:format('~p', [egg_tester:y()])" -eval 'init:stop()' | head -n -4 >> "module$num.erl"
-    # cat "module$num.erl"
+  echo "### Generating a random program..."
+  echo "-module(module$num)." > "module$num.erl"
+  echo "-export([main/0])." >> "module$num.erl"
+  erl -pa eqc-2.01.0/ebin -pa generator/ebin -noshell -eval "random:seed(erlang:now()), io:format('~p', [egg_tester:y()])" -eval 'init:stop()' | head -n -4 >> "module$num.erl"
+  # cat "module$num.erl"
 }
 
 use_test_case()
 {
 	hdline
-    echo "### Using test case $1..."
-    echo ""
-    echo "-module(module1)." > module1.erl
-    echo "-export([main/0])." >> module1.erl
-    cat $1 >> module1.erl
+  echo "### Using test case $1..."
+  echo ""
+  echo "-module(module1)." > module1.erl
+  echo "-export([main/0])." >> module1.erl
+  cat $1 >> module1.erl
 }
 
 execute_k()
@@ -85,7 +87,8 @@ execute_coq()
         echo "### (I'm skipping the Coq execution step.)"
     else
         echo "### Transforming Erl CST to CERL Coq-AST..."
-        erl -pa converter -noshell -eval "cst_to_ast:from_erl(module$num)" -eval 'init:stop()' > "tmp$num.v"
+        # here you can give whether functional (true) or traditional (false) semantics should be used (second param of from_erl)
+        erl -pa converter -noshell -eval "cst_to_ast:from_erl(module$num, $FUNCTIONAL)" -eval 'init:stop()' > "tmp$num.v"
         if ! [ $? -eq 0 ]; then
             echo -e "### The \e[44mCoq\e[m converter has \e[41mFAILED\e[m"
             return 1
@@ -114,7 +117,15 @@ execute_coq()
 		
 				echo "### Extracting the result..."
 				# The string notation "str" shouldn't be disposed after introducting strings to the formalisation
-				RESULT_COQ=$(cat "coqresult$num.res" | tail -n +2 | tr -d '[:space:]' | sed 's/.*--e->\(.*\)/\L\1/' | sed -e 's/inl//g' | sed -e 's/`//g' | sed -e 's/@//g' | sed -e 's/==>/=>/g' | sed -e 's/\"//g' | sed -e 's/'\''//g')
+				# RESULT_COQ=$(cat "coqresult$num.res" | tail -n +2 | tr -d '[:space:]' | sed 's/.*--e->\(.*\)/\L\1/' | sed -e 's/inl//g' | sed -e 's/`//g' | sed -e 's/@//g' | sed -e 's/==>/=>/g' | sed -e 's/\"//g' | sed -e 's/'\''//g')
+        if [ $FUNCTIONAL == "true" ] ; then
+          RESULT_COQ=$(cat "coqresult$num.res")
+          RESULT_COQ=${RESULT_COQ#*Some }
+          RESULT_COQ=${RESULT_COQ::-14}
+          RESULT_COQ=$(sed -e 's/`//g' <<< $RESULT_COQ | sed -e 's/@//g' | sed -e 's/==>/=>/g' | sed -e 's/\"//g' | sed -e 's/'\''//g')
+        else
+          RESULT_COQ=$(cat "coqresult$num.res" | tail -n +2 | tr -d '[:space:]' | sed 's/.*--e->\(.*\)/\L\1/' | sed -e 's/inl//g' | sed -e 's/`//g' | sed -e 's/@//g' | sed -e 's/==>/=>/g' | sed -e 's/\"//g' | sed -e 's/'\''//g' | sed -e 's/%//g')
+        fi
 				echo "### The result is: ${RESULT_COQ}"
 				return 0
 			fi
@@ -131,10 +142,10 @@ timestamp() {
 execute_erl()
 {
 	local num=$1
-    echo "### Compiling the Erlang code..."
-    erlc -W0 "module$num.erl"
-    echo "### Executing the Erlang code..."
-    erl -noshell -eval "io:format('~p', [module$num:main()])" -eval 'init:stop()' > "erlresult$num.res" 2> "erlerror$num.res"
+  echo "### Compiling the Erlang code..."
+  erlc -W0 "module$num.erl"
+  echo "### Executing the Erlang code..."
+  erl -noshell -eval "io:format('~p', [module$num:main()])" -eval 'init:stop()' > "erlresult$num.res" 2> "erlerror$num.res"
 	grep 'Crash dump is being written to: erl_crash.dump...done\|no such file or directory' "erlerror$num.res" > "erltrueerror$num.res"
 	RESULT_ERL=$(cat "erlresult$num.res")
 	echo "### The Erlang result is: ${RESULT_ERL}"
@@ -175,13 +186,13 @@ compare_coq_to_erl()
 
 cleanup()
 {
-    rm -f module*.erl
-    rm -f tmp*.*
+  rm -f module*.erl
+  rm -f tmp*.*
 	rm -f .tmp*
-    rm -f *_result
+  rm -f *_result
 	rm -f *_error
-    rm -f *.beam
-    rm -f erl_crash.dump
+  rm -f *.beam
+  rm -f erl_crash.dump
 	rm -f *.res
 }
 
@@ -230,47 +241,48 @@ execute_and_check()
 compile_converter()
 {
 	echo "### Compiling the translator..."
-    erlc converter/cst_to_ast.erl > /dev/null
+  erlc converter/cst_to_ast.erl > /dev/null
 }
 
 test_all()
 {
-    n=${#ALL_TESTS[@]}
-    echo "Number of all test cases: $n"
-	compile_converter
-	result=(0 0 0 0 0 0)
-    for f in "${ALL_TESTS[@]}"; do
-        use_test_case $f
-        execute_and_check
-        R=$?
-        if [ $R -eq 0 ]; then ((result[0]++)); fi
-        if [ $R -eq 1 ]; then ((result[1]++)); fi
-        if [ $R -eq 2 ]; then ((result[2]++)); fi
-        if [ $R -eq 3 ]; then ((result[3]++)); fi
-        if [ $R -eq 4 ]; then ((result[4]++)); fi
-		if [ $R -eq 5 ]; then ((result[5]++)); fi
-    done
-    echo ""
-    echo "@@@ STATISTICS on $n cases"
-    echo " - SUCCESSFUL     : ${result[0]}"
-    echo " - K ERROR        : ${result[1]}"
-    echo " - K INCORRECT    : ${result[2]}"
-    echo " - COQ ERROR      : ${result[3]}"
-    echo " - COQ INCORRECT  : ${result[4]}"
+  n=${#ALL_TESTS[@]}
+  echo "Number of all test cases: $n"
+  compile_converter
+  result=(0 0 0 0 0 0)
+  for f in "${ALL_TESTS[@]}"; do
+    use_test_case $f
+    execute_and_check 1
+    R=$?
+    if [ $R -eq 0 ]; then ((result[0]++)); fi
+    if [ $R -eq 1 ]; then ((result[1]++)); fi
+    if [ $R -eq 2 ]; then ((result[2]++)); fi
+    if [ $R -eq 3 ]; then ((result[3]++)); fi
+    if [ $R -eq 4 ]; then ((result[4]++)); fi
+    if [ $R -eq 5 ]; then ((result[5]++)); fi
+  done
+  echo ""
+  echo "@@@ STATISTICS on $n cases"
+  echo " - SUCCESSFUL     : ${result[0]}"
+  echo " - K ERROR        : ${result[1]}"
+  echo " - K INCORRECT    : ${result[2]}"
+  echo " - COQ ERROR      : ${result[3]}"
+  echo " - COQ INCORRECT  : ${result[4]}"
 	echo " - ERLANG FAILED  : ${result[5]}"
-    echo ""
+  echo ""
 }
 
 test_corrects()
-{   n=${#COR_TESTS[@]}
-    c=0
-    echo "Number of test cases marked as correct: $n"
+{   
+  n=${#COR_TESTS[@]}
+  c=0
+  echo "Number of test cases marked as correct: $n"
 	compile_converter
-    for f in "${COR_TESTS[@]}"; do
-		use_test_case $f
-        if execute_and_check; then ((c++)); fi
-    done
-    echo "STATISTICS: $c/$n"
+  for f in "${COR_TESTS[@]}"; do
+  use_test_case $f
+  if execute_and_check; then ((c++)); fi
+  done
+  echo "STATISTICS: $c/$n"
 }
 
 function foo()
@@ -285,7 +297,7 @@ function foo()
 	if [ $R -eq 3 ]; then ((result[3]++)); fi
 	if [ $R -eq 4 ]; then ((result[4]++)); fi
 	if [ $R -eq 5 ]; then ((result[5]++)); fi
-	echo "ALMAFAAAAAAAAAAAA: ${result[3]}"
+	# echo "ALMAFAAAAAAAAAAAA: ${result[3]}"
 }
 
 test_random()
