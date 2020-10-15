@@ -3,7 +3,7 @@
 # ==============================================================================
 
 KDIR=""
-COQDIR=/mnt/f/Phd/Core-Erlang-Formalization/src
+COQDIR=Core-Erlang-Formalization/src
 #COQDIR=/mnt/c/Users/petib/Desktop/Core-Erlang-Formalization/src
 # COQDIR=""
 # Use functional semantics or traditional (true -> functional, false -> traditional)
