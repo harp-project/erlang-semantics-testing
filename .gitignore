@@ -1,0 +1,7 @@
+*.aux
+*.v
+*.glob
+*.vo
+*.vos
+*.vok
+*.beam

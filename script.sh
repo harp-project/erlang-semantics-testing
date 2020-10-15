@@ -3,7 +3,7 @@
 # ==============================================================================
 
 KDIR=""
-COQDIR=/mnt/f/Phd/Core-Erlang-Formalization/src
+COQDIR=Core-Erlang-Formalization/src
 #COQDIR=/mnt/c/Users/petib/Desktop/Core-Erlang-Formalization/src
 # COQDIR=""
 # Use functional semantics or traditional (true -> functional, false -> traditional)
@@ -88,7 +88,7 @@ execute_coq()
     else
         echo "### Transforming Erl CST to CERL Coq-AST..."
         # here you can give whether functional (true) or traditional (false) semantics should be used (second param of from_erl)
-        erl -pa converter -noshell -eval "cst_to_ast:from_erl(module$num, $FUNCTIONAL)" -eval 'init:stop()' > "tmp$num.v"
+        erl -pa converter -noshell -eval "io:format(cst_to_ast:from_erl(module$num, $FUNCTIONAL))" -eval 'init:stop()' > "tmp$num.v"
         if ! [ $? -eq 0 ]; then
             echo -e "### The \e[44mCoq\e[m converter has \e[41mFAILED\e[m"
             return 1
@@ -268,7 +268,7 @@ test_all()
   echo " - K INCORRECT    : ${result[2]}"
   echo " - COQ ERROR      : ${result[3]}"
   echo " - COQ INCORRECT  : ${result[4]}"
-	echo " - ERLANG FAILED  : ${result[5]}"
+  echo " - ERLANG FAILED  : ${result[5]}"
   echo ""
 }
 
@@ -280,7 +280,7 @@ test_corrects()
 	compile_converter
   for f in "${COR_TESTS[@]}"; do
   use_test_case $f
-  if execute_and_check; then ((c++)); fi
+  if execute_and_check 1; then ((c++)); fi
   done
   echo "STATISTICS: $c/$n"
 }

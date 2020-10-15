@@ -35,8 +35,8 @@ from_core(Path, UseFunctional) -> do_pp(compile:file(Path, [from_core, to_core, 
 
 do_pp(V, UseFunctional) ->
   case V of
-    {ok, _, CST     } -> io:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
-    {ok, _, CST, _Ws} -> io:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
+    {ok, _, CST     } -> io_lib:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
+    {ok, _, CST, _Ws} -> io_lib:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
