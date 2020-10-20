@@ -57,14 +57,6 @@ generate_random_program()
   # cat "module$num.erl"
 }
 
-use_test_case()
-{
-	hdline
-    echo "### Using test case $1..."
-    echo ""
-    cat $1 >> module1.erl
-}
-
 execute_k()
 {
     if [ "$KDIR" = "" ]; then
@@ -246,41 +238,17 @@ test_all()
 {
   n=${#ALL_TESTS[@]}
   echo "Number of all test cases: $n"
-  compile_converter
-  result=(0 0 0 0 0 0)
-  for f in "${ALL_TESTS[@]}"; do
-    use_test_case $f
-    execute_and_check 1
-    R=$?
-    if [ $R -eq 0 ]; then ((result[0]++)); fi
-    if [ $R -eq 1 ]; then ((result[1]++)); fi
-    if [ $R -eq 2 ]; then ((result[2]++)); fi
-    if [ $R -eq 3 ]; then ((result[3]++)); fi
-    if [ $R -eq 4 ]; then ((result[4]++)); fi
-    if [ $R -eq 5 ]; then ((result[5]++)); fi
-  done
-  echo ""
-  echo "@@@ STATISTICS on $n cases"
-  echo " - SUCCESSFUL     : ${result[0]}"
-  echo " - K ERROR        : ${result[1]}"
-  echo " - K INCORRECT    : ${result[2]}"
-  echo " - COQ ERROR      : ${result[3]}"
-  echo " - COQ INCORRECT  : ${result[4]}"
-  echo " - ERLANG FAILED  : ${result[5]}"
-  echo ""
+  make
+  ./scripts.erl "${ALL_TESTS[@]}"
 }
 
 test_corrects()
 {   
   n=${#COR_TESTS[@]}
-  c=0
   echo "Number of test cases marked as correct: $n"
-	compile_converter
-  for f in "${COR_TESTS[@]}"; do
-  use_test_case $f
-  if execute_and_check 1; then ((c++)); fi
-  done
-  echo "STATISTICS: $c/$n"
+  echo "tests -> ${COR_TESTS[@]}"
+  make
+  ./scripts.erl "${COR_TESTS[@]}"
 }
 
 function foo()
@@ -334,9 +302,9 @@ test_single()
 {
 	echo "### Which file should I test?"
 	read testcase
-	use_test_case $testcase
-	compile_converter
-	execute_and_check 1
+
+        make
+        ./scripts.erl "$testcase"
 }
 
 startup()
