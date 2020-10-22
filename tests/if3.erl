@@ -1,3 +1,6 @@
+-module(if3).
+-export([main/0]).
+
 talk(Animal) ->
   Talk =
     if

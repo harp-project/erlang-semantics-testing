@@ -1,3 +1,6 @@
+-module(listcomp).
+-export([main/0]).
+
 f(X,Y) -> X + Y.
 
 main() ->

@@ -1,3 +1,6 @@
+-module(case_guard6).
+-export([main/0]).
+
 main() ->
   case 3 of
     3 when 2 < 1, 3 > 2 -> nok;

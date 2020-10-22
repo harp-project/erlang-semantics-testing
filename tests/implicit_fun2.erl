@@ -1,3 +1,6 @@
+-module(implicit_fun2).
+-export([main/0]).
+
 f(X) -> X + 1.
 
 main() ->

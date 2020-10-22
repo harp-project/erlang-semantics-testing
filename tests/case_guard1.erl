@@ -1,3 +1,6 @@
+-module(case_guard1).
+-export([main/0]).
+
 f(X) -> X + 1.
 
 main() ->

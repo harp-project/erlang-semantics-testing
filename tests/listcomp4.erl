@@ -1,3 +1,6 @@
+-module(listcomp4).
+-export([main/0]).
+
 main() ->
   [X+Y || {X,1} <- [{1,1},{2,1},{3,2},foo,{3,1},100],
         X > 1,

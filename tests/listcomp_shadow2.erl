@@ -1,3 +1,6 @@
+-module(listcomp_shadow2).
+-export([main/0]).
+
 f(X) -> X + 1.
 
 main() ->

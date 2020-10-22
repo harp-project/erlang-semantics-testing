@@ -1,3 +1,6 @@
+-module(sum).
+-export([main/0]).
+
 sum1(X) ->
   sum1_(X,0).
 

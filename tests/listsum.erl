@@ -1,3 +1,6 @@
+-module(listsum).
+-export([main/0]).
+
 sum([]) -> 0;
 sum([H | T]) -> H + sum(T).
 

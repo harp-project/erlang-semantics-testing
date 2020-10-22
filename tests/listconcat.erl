@@ -1,3 +1,6 @@
+-module(listconcat).
+-export([main/0]).
+
 f(X) -> X + 1.
 
 main() ->

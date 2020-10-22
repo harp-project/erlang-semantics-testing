@@ -1,3 +1,6 @@
+-module(list_comparison2).
+-export([main/0]).
+
 main() -> [1,2,3] < [2,2] andalso
           [] == [] andalso
           [] < [1] andalso

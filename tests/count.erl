@@ -1,3 +1,6 @@
+-module(count).
+-export([main/0]).
+
 count_to_ten() -> do_count(0).
  
 do_count(10) -> 10;

@@ -1,3 +1,6 @@
+-module(case_guard4).
+-export([main/0]).
+
 main() ->
   case 3 of
     3 when 1 < 2; 1 > 2 -> ok;

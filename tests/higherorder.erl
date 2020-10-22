@@ -1,3 +1,6 @@
+-module(higherorder).
+-export([main/0]).
+
 map(F, []) -> [];
 map(F, [H | T]) -> [F(H) | map(F,T)].
 
