@@ -20,8 +20,11 @@ remove_directory(Path) ->
     end.
 
 mktmpdir() ->
-    filelib:ensure_dir("/tmp/foo/"),
-    "/tmp/foo/".
+    TimeInSeconds = erlang:system_time(second),
+    %Date = calendar:system_time_to_rfc3339(TimeInSeconds),
+    DirPath = io_lib:format("/tmp/semantic-tester-~p/", [TimeInSeconds]),
+    filelib:ensure_dir(DirPath),
+    DirPath.
 
 execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
@@ -47,9 +50,9 @@ write_to_file(Filename, Content) ->
 generator_remove_junk(Input) ->
     hd(string:split(Input, "----------", trailing)).
 
-generate_and_save_random_test(Id) ->
+generate_and_save_random_test(Id, ReportDirectory) ->
     random:seed(erlang:now()),
-    Filename = io_lib:format("module~p.erl", [Id]),
+    Filename = ReportDirectory ++ io_lib:format("module~p.erl", [Id]),
     % TODO: egg_tester:y() should return with a string instead of printing it
     %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()])),
     case
@@ -77,13 +80,15 @@ count(Elem, Lists) ->
     count_if(fun(X) -> Elem == X end, Lists).
 
 run_multiple_test(Tests) when is_list(Tests) ->
-    lists:map(fun(Test) -> execute_and_compare_result(Test, mktmpdir()) end, Tests).
+    ReportDirectory = mktmpdir(),
+    lists:map(fun(Test) -> execute_and_compare_result(Test, ReportDirectory) end, Tests).
 
 generate_and_multiple_test(NumberOfTests) when is_number(NumberOfTests) ->
+    ReportDirectory = mktmpdir(),
     lists:map(
         fun(Id) ->
-            Test = generate_and_save_random_test(Id),
-            Result = execute_and_compare_result(Test, mktmpdir()),
+            Test = generate_and_save_random_test(Id, ReportDirectory),
+            Result = execute_and_compare_result(Test, ReportDirectory),
             Result
         end,
         lists:seq(1, NumberOfTests)
