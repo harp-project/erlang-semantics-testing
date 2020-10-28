@@ -33,21 +33,22 @@ parse(String) when true ->
         IntStr -> erlang:list_to_integer(IntStr)
     end.
 
-compile(Path) ->
-    exec:shell_exec(io_lib:format("erlc -W0 \"~p\"", [Path])).
+compile(Path, ReportDirectory) ->
+    exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~p\"", [ReportDirectory, Path])).
 
-run(Module) ->
+run(Module, ReportDirectory) ->
     exec:shell_exec(
-        io_lib:format("erl -noshell -eval \"io:format('~~p', [~p:main()])\" -eval 'init:stop()'", [
+        io_lib:format("erl -pa ~s -noshell -eval \"io:format('~~p', [~p:main()])\" -eval 'init:stop()'", [
+            ReportDirectory,
             Module
         ])
     ).
 
-execute(Test, ModuleName, _) ->
+execute(Test, ModuleName, ReportDirectory) ->
     % compile(Test++".erl") >>= run(ModuleName) >>= parse
-    case compile(Test ++ ".erl") of
+    case compile(Test ++ ".erl", ReportDirectory) of
         {0, _} ->
-            case run(ModuleName) of
+            case run(ModuleName, ReportDirectory) of
                 {0, Output} ->
                     {ok, parse(Output)};
                 {RetVal, Output} ->
