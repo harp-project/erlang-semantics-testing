@@ -21,10 +21,11 @@ remove_directory(Path) ->
 execute_and_compare_result(Test) ->
     Basename = remove_extension(Test),
     ModuleName = remove_directory(Basename),
+    ReportDirectory = "/tmp/foo/",
     Result = [
-        execute_erl:execute(Basename, ModuleName),
-        execute_coq:execute(Basename, ModuleName),
-        execute_k:execute(Basename, ModuleName)
+        execute_erl:execute(Basename, ModuleName, ReportDirectory),
+        execute_coq:execute(Basename, ModuleName, ReportDirectory),
+        execute_k:execute(Basename, ModuleName, ReportDirectory)
     ],
     [Head | Tail] = Result,
     io:format("."), %print about progress

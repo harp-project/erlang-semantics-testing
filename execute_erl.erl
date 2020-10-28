@@ -1,6 +1,6 @@
 -module(execute_erl).
 
--export([execute/2]).
+-export([execute/3]).
 
 remove_parenthesis(String) ->
     [X || X <- String, X =/= $(, X =/= $)].
@@ -43,7 +43,7 @@ run(Module) ->
         ])
     ).
 
-execute(Test, ModuleName) ->
+execute(Test, ModuleName, _) ->
     % compile(Test++".erl") >>= run(ModuleName) >>= parse
     case compile(Test ++ ".erl") of
         {0, _} ->

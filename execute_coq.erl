@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/2]).
+-export([execute/3]).
 
 remove_parenthesis(String) ->
     [X || X <- String, X =/= $(, X =/= $)].
@@ -93,7 +93,7 @@ write_to_file(Filename, Content) ->
 convert_erl_to_coq(H) ->
     write_to_file(H ++ ".v", cst_to_ast:from_erl(H, true)).
 
-execute(Test, _) ->
+execute(Test, _, _) ->
     convert_erl_to_coq(Test),
     Output = compile_coq(Test),
     parse_coq_result(Output).
