@@ -9,6 +9,7 @@
 
 -compile([export_all]).
 
+
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
 
@@ -17,6 +18,10 @@ remove_directory(Path) ->
         nomatch -> Path;
         Matching -> string:substr(Matching, 2)
     end.
+
+mktmpdir() ->
+    filelib:ensure_dir("/tmp/foo/"),
+    "/tmp/foo/".
 
 execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
@@ -72,13 +77,13 @@ count(Elem, Lists) ->
     count_if(fun(X) -> Elem == X end, Lists).
 
 run_multiple_test(Tests) when is_list(Tests) ->
-    lists:map(fun(Test) -> execute_and_compare_result(Test, "/tmp/random/") end, Tests).
+    lists:map(fun(Test) -> execute_and_compare_result(Test, mktmpdir()) end, Tests).
 
 generate_and_multiple_test(NumberOfTests) when is_number(NumberOfTests) ->
     lists:map(
         fun(Id) ->
             Test = generate_and_save_random_test(Id),
-            Result = execute_and_compare_result(Test, "/tmp/foo/"),
+            Result = execute_and_compare_result(Test, mktmpdir()),
             Result
         end,
         lists:seq(1, NumberOfTests)
