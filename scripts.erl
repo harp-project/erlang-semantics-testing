@@ -18,14 +18,13 @@ remove_directory(Path) ->
         Matching -> string:substr(Matching, 2)
     end.
 
-execute_and_compare_result(Test) ->
+execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
     ModuleName = remove_directory(Basename),
-    ReportDirectory = "/tmp/foo/",
     Result = [
         execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory),
-        execute_k:execute(Basename, ModuleName, ReportDirectory)
+        %execute_k:execute(Basename, ModuleName, ReportDirectory),
+        execute_coq:execute(Basename, ModuleName, ReportDirectory)
     ],
     [Head | Tail] = Result,
     io:format("."), %print about progress
@@ -73,13 +72,13 @@ count(Elem, Lists) ->
     count_if(fun(X) -> Elem == X end, Lists).
 
 run_multiple_test(Tests) when is_list(Tests) ->
-    lists:map(fun(Test) -> execute_and_compare_result(Test) end, Tests).
+    lists:map(fun(Test) -> execute_and_compare_result(Test, "/tmp/random/") end, Tests).
 
 generate_and_multiple_test(NumberOfTests) when is_number(NumberOfTests) ->
     lists:map(
         fun(Id) ->
             Test = generate_and_save_random_test(Id),
-            Result = execute_and_compare_result(Test),
+            Result = execute_and_compare_result(Test, "/tmp/foo/"),
             Result
         end,
         lists:seq(1, NumberOfTests)
