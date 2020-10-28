@@ -39,7 +39,7 @@ compile_coq(BaseName, ReportDirectory) ->
     %coqc -Q $COQDIR "" "tmp$num.v"
     case
         exec:shell_exec(
-            io_lib:format("coqc -Q \"~p\" \"\" \"~p\"", [
+            io_lib:format("coqc -Q \"~s\" \"\" \"~s\"", [
                 ?COQDIR,
                 ReportDirectory ++ BaseName ++ ".v"
             ])
