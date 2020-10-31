@@ -26,8 +26,14 @@ mktmpdir() ->
     filelib:ensure_dir(DirPath),
     DirPath.
 
-report(_, _ _) ->
-    io:format(".").
+report(Test, ReportDirectory, Result) ->
+    Success = is_homogene(Result),
+    write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success])),
+    case Success of
+       false -> io:format("~n ~s failed ~p~n", [Test, Result]),
+                io:format("X");
+       true  -> io:format(".")
+    end.
 
 is_homogene(List) ->
     [Head | Tail] = List,
