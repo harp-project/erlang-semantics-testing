@@ -26,6 +26,10 @@ mktmpdir() ->
     filelib:ensure_dir(DirPath),
     DirPath.
 
+is_homogene(List) ->
+    [Head | Tail] = List,
+    lists:all(fun(Elem) -> Elem == Head end, Tail).
+
 execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
     ModuleName = remove_directory(Basename),
@@ -34,9 +38,8 @@ execute_and_compare_result(Test, ReportDirectory) ->
         %execute_k:execute(Basename, ModuleName, ReportDirectory),
         execute_coq:execute(Basename, ModuleName, ReportDirectory)
     ],
-    [Head | Tail] = Result,
     io:format("."), %print about progress
-    lists:all(fun(Elem) -> Elem == Head end, Tail).
+    is_homogene(Result).
 
 write_to_file(Filename, Content) ->
     case file:open(Filename, [write]) of
