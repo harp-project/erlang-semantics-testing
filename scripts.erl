@@ -24,6 +24,7 @@ mktmpdir() ->
     %Date = calendar:system_time_to_rfc3339(TimeInSeconds),
     DirPath = io_lib:format("/tmp/semantic-tester-~p/", [TimeInSeconds]),
     filelib:ensure_dir(DirPath),
+    io:format("Report Directory created: ~s~n", [DirPath]),
     DirPath.
 
 report(Test, ReportDirectory, Result) ->
