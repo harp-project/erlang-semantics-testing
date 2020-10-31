@@ -26,6 +26,9 @@ mktmpdir() ->
     filelib:ensure_dir(DirPath),
     DirPath.
 
+report(_, _ _) ->
+    io:format(".").
+
 is_homogene(List) ->
     [Head | Tail] = List,
     lists:all(fun(Elem) -> Elem == Head end, Tail).
@@ -38,7 +41,7 @@ execute_and_compare_result(Test, ReportDirectory) ->
         %execute_k:execute(Basename, ModuleName, ReportDirectory),
         execute_coq:execute(Basename, ModuleName, ReportDirectory)
     ],
-    io:format("."), %print about progress
+    report(ModuleName, ReportDirectory, Result),
     is_homogene(Result).
 
 write_to_file(Filename, Content) ->
