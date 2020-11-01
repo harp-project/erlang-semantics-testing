@@ -33,10 +33,13 @@ Compute result_value (fbs_expr 100000 [] 0 (ESingle (ELetRec  [~s] (ESingle (EAp
 from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector).
 from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector).
 
+format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [PPCST]);
+format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
+
 do_pp(V, SemanticSelector) ->
   case V of
-    {ok, _, CST     } -> io_lib:format(if SemanticSelector -> ?functional; true -> ?traditional end, [pp(CST)]);
-    {ok, _, CST, _Ws} -> io_lib:format(if SemanticSelector -> ?functional; true -> ?traditional end, [pp(CST)]);
+    {ok, _, CST     } -> if SemanticSelector -> format_cst(pp(CST), functionalSemantic); true -> format_cst(pp(CST), traditionalSemantic) end;
+    {ok, _, CST, _Ws} -> if SemanticSelector -> format_cst(pp(CST), functionalSemantic); true -> format_cst(pp(CST), traditionalSemantic) end;
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
