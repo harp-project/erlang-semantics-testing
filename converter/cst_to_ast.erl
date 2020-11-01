@@ -30,13 +30,13 @@ Import ListNotations.
 Compute result_value (fbs_expr 100000 [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
 \n").
 
-from_erl(Path, UseFunctional)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), UseFunctional).
-from_core(Path, UseFunctional) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), UseFunctional).
+from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector).
+from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector).
 
-do_pp(V, UseFunctional) ->
+do_pp(V, SemanticSelector) ->
   case V of
-    {ok, _, CST     } -> io_lib:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
-    {ok, _, CST, _Ws} -> io_lib:format(if UseFunctional -> ?functional; true -> ?tranditional end, [pp(CST)]);
+    {ok, _, CST     } -> io_lib:format(if SemanticSelector -> ?functional; true -> ?tranditional end, [pp(CST)]);
+    {ok, _, CST, _Ws} -> io_lib:format(if SemanticSelector -> ?functional; true -> ?tranditional end, [pp(CST)]);
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
