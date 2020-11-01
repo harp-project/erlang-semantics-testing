@@ -86,7 +86,12 @@ generate_and_save_random_test(Id, ReportDirectory) ->
         {_, Output} ->
             io:format("Cannot generate code ~p~n", [Output])
     end,
-    Filename.
+    %NOTE: this is kinda dirty, but some generated erlang code either won't compile or
+    %      crashes durring execution due to ill formed code.
+    case execute_erl:execute(Filename, ModuleName, ReportDirectory) of
+       {error, _} -> generate_and_save_random_test(Id, ReportDirectory);
+       _          -> Filename
+    end.
 
 count_if(Pred, Lists) ->
     length(lists:filter(Pred, Lists)).
