@@ -41,8 +41,8 @@ format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
 
 do_pp(V, SemanticSelector) ->
   case V of
-    {ok, _, CST     } -> if SemanticSelector -> format_cst(pp(CST), SemanticSelector); true -> format_cst(pp(CST), SemanticSelector) end;
-    {ok, _, CST, _Ws} -> if SemanticSelector -> format_cst(pp(CST), SemanticSelector); true -> format_cst(pp(CST), SemanticSelector) end;
+    {ok, _, CST     } -> format_cst(pp(CST), SemanticSelector);
+    {ok, _, CST, _Ws} -> format_cst(pp(CST), SemanticSelector);
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
