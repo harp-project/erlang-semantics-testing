@@ -27,8 +27,10 @@ Import Core_Erlang_Functional_Big_Step.Functional_Big_Step.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute result_value (fbs_expr 100000 [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
+Compute result_value (fbs_expr ~p [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
 \n").
+
+-define(functional_limit, 100000).
 
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalSemantic;
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> traditionalSemantic.
@@ -37,9 +39,9 @@ from_erl(Path, SemanticSelector) when is_boolean(SemanticSelector)  -> from_erl(
 from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector).
 
 from_core(Path, SemanticSelector) when is_boolean(SemanticSelector) -> from_core(Path, map_boolean_to_semantic_selector(SemanticSelector));
-from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), map_boolean_to_semantic_selector(SemanticSelector)).
+from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector).
 
-format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [PPCST]);
+format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [?functional_limit, PPCST]);
 format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
 
 do_pp(V, SemanticSelector) ->
