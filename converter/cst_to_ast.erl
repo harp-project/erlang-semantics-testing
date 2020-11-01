@@ -30,16 +30,19 @@ Import ListNotations.
 Compute result_value (fbs_expr 100000 [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
 \n").
 
-from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector).
-from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector).
+map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalSemantic;
+map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> traditionalSemantic.
+
+from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), map_boolean_to_semantic_selector(SemanticSelector)).
+from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), map_boolean_to_semantic_selector(SemanticSelector)).
 
 format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [PPCST]);
 format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
 
 do_pp(V, SemanticSelector) ->
   case V of
-    {ok, _, CST     } -> if SemanticSelector -> format_cst(pp(CST), functionalSemantic); true -> format_cst(pp(CST), traditionalSemantic) end;
-    {ok, _, CST, _Ws} -> if SemanticSelector -> format_cst(pp(CST), functionalSemantic); true -> format_cst(pp(CST), traditionalSemantic) end;
+    {ok, _, CST     } -> if SemanticSelector -> format_cst(pp(CST), SemanticSelector); true -> format_cst(pp(CST), SemanticSelector) end;
+    {ok, _, CST, _Ws} -> if SemanticSelector -> format_cst(pp(CST), SemanticSelector); true -> format_cst(pp(CST), SemanticSelector) end;
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
