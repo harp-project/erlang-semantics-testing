@@ -9,6 +9,7 @@
 
 -compile([export_all]).
 
+
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
 
@@ -18,17 +19,37 @@ remove_directory(Path) ->
         Matching -> string:substr(Matching, 2)
     end.
 
-execute_and_compare_result(Test) ->
+mktmpdir() ->
+    TimeInSeconds = erlang:system_time(second),
+    %Date = calendar:system_time_to_rfc3339(TimeInSeconds),
+    DirPath = io_lib:format("/tmp/semantic-tester-~p/", [TimeInSeconds]),
+    filelib:ensure_dir(DirPath),
+    io:format("Report Directory created: ~s~n", [DirPath]),
+    DirPath.
+
+report(Test, ReportDirectory, Result) ->
+    Success = is_homogene(Result),
+    write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success])),
+    case Success of
+       false -> io:format("~n ~s failed ~p~n", [Test, Result]),
+                io:format("X");
+       true  -> io:format(".")
+    end.
+
+is_homogene(List) ->
+    [Head | Tail] = List,
+    lists:all(fun(Elem) -> Elem == Head end, Tail).
+
+execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
     ModuleName = remove_directory(Basename),
     Result = [
-        execute_erl:execute(Basename, ModuleName),
-        execute_coq:execute(Basename, ModuleName),
-        execute_k:execute(Basename, ModuleName)
+        execute_erl:execute(Basename, ModuleName, ReportDirectory),
+        %execute_k:execute(Basename, ModuleName, ReportDirectory),
+        execute_coq:execute(Basename, ModuleName, ReportDirectory)
     ],
-    [Head | Tail] = Result,
-    io:format("."), %print about progress
-    lists:all(fun(Elem) -> Elem == Head end, Tail).
+    report(ModuleName, ReportDirectory, Result),
+    is_homogene(Result).
 
 write_to_file(Filename, Content) ->
     case file:open(Filename, [write]) of
@@ -42,9 +63,9 @@ write_to_file(Filename, Content) ->
 generator_remove_junk(Input) ->
     hd(string:split(Input, "----------", trailing)).
 
-generate_and_save_random_test(Id) ->
+generate_and_save_random_test(Id, ReportDirectory) ->
     random:seed(erlang:now()),
-    Filename = io_lib:format("module~p.erl", [Id]),
+    Filename = ReportDirectory ++ io_lib:format("module~p.erl", [Id]),
     % TODO: egg_tester:y() should return with a string instead of printing it
     %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()])),
     case
@@ -72,13 +93,15 @@ count(Elem, Lists) ->
     count_if(fun(X) -> Elem == X end, Lists).
 
 run_multiple_test(Tests) when is_list(Tests) ->
-    lists:map(fun(Test) -> execute_and_compare_result(Test) end, Tests).
+    ReportDirectory = mktmpdir(),
+    lists:map(fun(Test) -> execute_and_compare_result(Test, ReportDirectory) end, Tests).
 
 generate_and_multiple_test(NumberOfTests) when is_number(NumberOfTests) ->
+    ReportDirectory = mktmpdir(),
     lists:map(
         fun(Id) ->
-            Test = generate_and_save_random_test(Id),
-            Result = execute_and_compare_result(Test),
+            Test = generate_and_save_random_test(Id, ReportDirectory),
+            Result = execute_and_compare_result(Test, ReportDirectory),
             Result
         end,
         lists:seq(1, NumberOfTests)

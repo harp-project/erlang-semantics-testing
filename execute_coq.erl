@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/2]).
+-export([execute/3]).
 
 remove_parenthesis(String) ->
     [X || X <- String, X =/= $(, X =/= $)].
@@ -35,13 +35,13 @@ parse_int_or_bool(String) when true ->
 
 -define(COQDIR, "Core-Erlang-Formalization/src").
 
-compile_coq(Test) ->
+compile_coq(BaseName, ReportDirectory) ->
     %coqc -Q $COQDIR "" "tmp$num.v"
     case
         exec:shell_exec(
-            io_lib:format("coqc -Q \"~p\" \"\" \"~p\"", [
+            io_lib:format("coqc -Q \"~s\" \"\" \"~s\"", [
                 ?COQDIR,
-                Test ++ ".v"
+                ReportDirectory ++ BaseName ++ ".v"
             ])
         )
     of
@@ -90,10 +90,10 @@ write_to_file(Filename, Content) ->
             io:format("Error opening file ~s: ~s", [Status, Msg])
     end.
 
-convert_erl_to_coq(H) ->
-    write_to_file(H ++ ".v", cst_to_ast:from_erl(H, true)).
+convert_erl_to_coq(TestPath, BaseName, ReportDirectory) ->
+    write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, true)).
 
-execute(Test, _) ->
-    convert_erl_to_coq(Test),
-    Output = compile_coq(Test),
+execute(TestPath, BaseName, ReportDirectory) ->
+    convert_erl_to_coq(TestPath, BaseName, ReportDirectory),
+    Output = compile_coq(BaseName, ReportDirectory),
     parse_coq_result(Output).
