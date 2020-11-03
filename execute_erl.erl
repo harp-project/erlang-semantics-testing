@@ -34,11 +34,11 @@ parse(String) when true ->
     end.
 
 compile(Path, ReportDirectory) ->
-    exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~p\"", [ReportDirectory, Path])).
+    exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~s\"", [ReportDirectory, Path])).
 
 run(Module, ReportDirectory) ->
     exec:shell_exec(
-        io_lib:format("erl -pa ~s -noshell -eval \"io:format('~~p', [~p:main()])\" -eval 'init:stop()'", [
+        io_lib:format("erl -pa ~s -noshell -eval \"io:format('~~p', [~s:main()])\" -eval 'init:stop()'", [
             ReportDirectory,
             Module
         ])

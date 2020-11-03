@@ -65,7 +65,9 @@ generator_remove_junk(Input) ->
 
 generate_and_save_random_test(Id, ReportDirectory) ->
     random:seed(erlang:now()),
-    Filename = ReportDirectory ++ io_lib:format("module~p.erl", [Id]),
+    ModuleName = io_lib:format("module~p", [Id]),
+    Basename = ModuleName ++ ".erl",
+    Filename = ReportDirectory ++ Basename,
     % TODO: egg_tester:y() should return with a string instead of printing it
     %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()])),
     case
@@ -84,7 +86,12 @@ generate_and_save_random_test(Id, ReportDirectory) ->
         {_, Output} ->
             io:format("Cannot generate code ~p~n", [Output])
     end,
-    Filename.
+    %NOTE: this is kinda dirty, but some generated erlang code either won't compile or
+    %      crashes durring execution due to ill formed code.
+    case execute_erl:execute(Filename, ModuleName, ReportDirectory) of
+       {error, _} -> generate_and_save_random_test(Id, ReportDirectory);
+       _          -> Filename
+    end.
 
 count_if(Pred, Lists) ->
     length(lists:filter(Pred, Lists)).
