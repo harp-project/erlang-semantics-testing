@@ -9,7 +9,7 @@
 
 -compile([export_all]).
 
--define(REPORT_DIRECTORY, "/tmp/").
+-define(REPORT_DIRECTORY, "./reports/").
 
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
