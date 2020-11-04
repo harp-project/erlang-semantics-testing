@@ -9,6 +9,7 @@
 
 -compile([export_all]).
 
+-define(REPORT_DIRECTORY, "/tmp/").
 
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
@@ -22,7 +23,7 @@ remove_directory(Path) ->
 mktmpdir() ->
     TimeInSeconds = erlang:system_time(second),
     %Date = calendar:system_time_to_rfc3339(TimeInSeconds),
-    DirPath = io_lib:format("/tmp/semantic-tester-~p/", [TimeInSeconds]),
+    DirPath = io_lib:format("~ssemantic-tester-~p/", [?REPORT_DIRECTORY, TimeInSeconds]),
     filelib:ensure_dir(DirPath),
     io:format("Report Directory created: ~s~n", [DirPath]),
     DirPath.
