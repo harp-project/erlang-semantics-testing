@@ -2,36 +2,11 @@
 
 -export([execute/3]).
 
-remove_parenthesis(String) ->
-    [X || X <- String, X =/= $(, X =/= $)].
-
-% possible results
-% - ..., -1, 0, 1, 2, ...
-% - ..., (-10), (-9), ...
-% - "true", "false"
-% TODO: make this comment a test
-parse(String) when is_list(String) ->
-    Clean = string:lowercase(remove_parenthesis(string:trim(String))),
-    case Clean of
-        "\"true\"" -> true;
-        "true" -> true;
-        "True" -> true;
-        "False" -> false;
-        "false" -> false;
-        "\"false\"" -> false;
-        IntStr -> erlang:list_to_integer(IntStr)
-    end;
-parse(String) when true ->
-    Clean = string:lowercase(remove_parenthesis(string:trim(String))),
-    case Clean of
-        "\"true\"" -> true;
-        "true" -> true;
-        "True" -> true;
-        "False" -> false;
-        "false" -> false;
-        "\"false\"" -> false;
-        IntStr -> erlang:list_to_integer(IntStr)
-    end.
+parse(Expression) ->
+    {ok, Tokens, _} = erl_scan:string(Expression++"."),
+    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
+    {value, Result, _} = erl_eval:exprs(Parsed, []),
+    Result.
 
 compile(Path, ReportDirectory) ->
     exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~s\"", [ReportDirectory, Path])).

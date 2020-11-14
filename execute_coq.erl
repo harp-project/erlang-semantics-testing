@@ -2,36 +2,11 @@
 
 -export([execute/3]).
 
-remove_parenthesis(String) ->
-    [X || X <- String, X =/= $(, X =/= $)].
-
-% possible results
-% - ..., -1, 0, 1, 2, ...
-% - ..., (-10), (-9), ...
-% - "true", "false"
-%
-parse_int_or_bool(String) when is_list(String) ->
-    Clean = string:lowercase(remove_parenthesis(string:trim(String))),
-    case Clean of
-        "\"true\"" -> true;
-        "true" -> true;
-        "True" -> true;
-        "False" -> false;
-        "false" -> false;
-        "\"false\"" -> false;
-        IntStr -> erlang:list_to_integer(IntStr)
-    end;
-parse_int_or_bool(String) when true ->
-    Clean = string:lowercase(remove_parenthesis(string:trim(String))),
-    case Clean of
-        "\"true\"" -> true;
-        "true" -> true;
-        "True" -> true;
-        "False" -> false;
-        "false" -> false;
-        "\"false\"" -> false;
-        IntStr -> erlang:list_to_integer(IntStr)
-    end.
+parse(Expression) ->
+    {ok, Tokens, _} = erl_scan:string(Expression++"."),
+    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
+    {value, Result, _} = erl_eval:exprs(Parsed, []),
+    Result.
 
 -define(COQDIR, "Core-Erlang-Formalization/src").
 
@@ -71,7 +46,7 @@ parse_coq_result(Output) ->
         1 ->
             case string:split(hd(ResultLines), " ", trailing) of
                 [_ | Tail] ->
-                    {ok, parse_int_or_bool(hd(Tail))};
+                    {ok, parse(hd(Tail))};
                 _ ->
                     io:format("Cannot parse: ~p~n", [ResultLines]),
                     {error, "Cannot parse"}
