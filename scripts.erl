@@ -73,16 +73,14 @@ generate_and_save_random_test(Id, ReportDirectory) ->
     %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()])),
     case
         exec:shell_exec(
-            "erl -pa eqc-2.01.0/ebin -pa generator/ebin -noshell -eval \"random:seed(erlang:now()), io:format('~p', [egg_tester:y()])\" -eval 'init:stop()'"
+            io_lib:format("erl -pa eqc-2.01.0/ebin -pa generator/ebin -noshell -eval \"random:seed(erlang:now()), io:format('~~p', [erl_2020_gen:sample(module~p, ~p)])\" -eval 'init:stop()'",
+                          [Id, 10])
         )
     of
         {0, Output} ->
             write_to_file(
                 Filename,
-                io_lib:format('-module(module~p).~n-export([main/0]).~n~s', [
-                    Id,
-                    generator_remove_junk(Output)
-                ])
+                generator_remove_junk(Output)
             );
         {_, Output} ->
             io:format("Cannot generate code ~p~n", [Output])
