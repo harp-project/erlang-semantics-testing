@@ -2,8 +2,11 @@
 
 -export([execute/3]).
 
+map_result_to_erlang(String) ->
+    [X || X <- String, X =/= $", X =/= $`, X =/= $'].
+
 parse(Expression) ->
-    {ok, Tokens, _} = erl_scan:string(Expression++"."),
+    {ok, Tokens, _} = erl_scan:string(map_result_to_erlang(Expression)++"."),
     {ok, Parsed} = erl_parse:parse_exprs(Tokens),
     {value, Result, _} = erl_eval:exprs(Parsed, []),
     Result.
@@ -44,7 +47,7 @@ parse_coq_result(Output) ->
     %io:format("result code = ~p ~n result string: ~p ~n~n", [ResultCode, ResultLines]),
     case length(ResultLines) of
         1 ->
-            case string:split(hd(ResultLines), " ", trailing) of
+            case string:split(hd(ResultLines), "Some ", trailing) of
                 [_ | Tail] ->
                     {ok, parse(hd(Tail))};
                 _ ->
