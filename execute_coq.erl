@@ -3,7 +3,8 @@
 -export([execute/3]).
 
 map_result_to_erlang(String) ->
-    [X || X <- String, X =/= $", X =/= $`, X =/= $'].
+    Remove = [X || X <- String, X =/= $", X =/= $`, X =/= $', X =/= $@, X =/= $(, X =/= $)],
+    lists:flatten(string:replace(Remove, "==>", "=>", all)).
 
 parse(Expression) ->
     {ok, Tokens, _} = erl_scan:string(map_result_to_erlang(Expression)++"."),
