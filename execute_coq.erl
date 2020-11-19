@@ -3,7 +3,7 @@
 -export([execute/3]).
 
 map_result_to_erlang(String) ->
-    Remove = [X || X <- String, X =/= $", X =/= $`, X =/= $', X =/= $@, X =/= $(, X =/= $)],
+    Remove = [X || X <- String, X =/= $\n, X =/= $", X =/= $`, X =/= $', X =/= $@],
     lists:flatten(string:replace(Remove, "==>", "=>", all)).
 
 parse(Expression) ->
@@ -35,30 +35,15 @@ parse_coq_result(Output) when is_integer(Output) ->
     io:format("coq result should be string~n"),
     {error, "Expected string"};
 parse_coq_result(Output) ->
-    Lines = string:split(Output, "\n", all),
-    ResultLines = lists:filter(
-        fun(Line) ->
-            case string:find(Line, "Some") of
-                nomatch -> false;
-                _ -> true
-            end
-        end,
-        Lines
-    ),
-    %io:format("result code = ~p ~n result string: ~p ~n~n", [ResultCode, ResultLines]),
-    case length(ResultLines) of
-        1 ->
-            case string:split(hd(ResultLines), "Some ", trailing) of
-                [_ | Tail] ->
-                    {ok, parse(hd(Tail))};
-                _ ->
-                    io:format("Cannot parse: ~p~n", [ResultLines]),
-                    {error, "Cannot parse"}
-            end;
+    case string:split(Output, "= Some", leading) of
+        [_ | Tail] ->
+            ToParse = lists:flatten(string:replace(Tail, ": option Value\n", "")),
+            {ok, parse(ToParse)};
         _ ->
             io:format("Cannot parse: ~p~n", [Output]),
             {error, "Cannot parse"}
-    end.
+    end
+    .
 
 write_to_file(Filename, Content) ->
     case file:open(Filename, [write]) of
