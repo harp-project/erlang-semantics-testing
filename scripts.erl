@@ -1,11 +1,9 @@
 #!/usr/bin/env escript
-
-%%! -pa converter
-%%! -pa eqc-2.01.0/ebin
-%%! -pa generator/ebin
-%%
+%%! -i -pa converter -pa generator/ebin -pa eqc-2.01.0/ebin
 
 -module(scripts).
+
+-include_lib("eqc/include/eqc.hrl").
 
 -compile([export_all]).
 
@@ -113,11 +111,48 @@ generate_and_multiple_test(NumberOfTests) when is_number(NumberOfTests) ->
         lists:seq(1, NumberOfTests)
     ).
 
+%% ---------------------------------------------------------------------
+%% Proper integration to QC
+
+save_test(String, Id, ReportDirectory) ->
+    ModuleName = io_lib:format("module~p", [Id]),
+    Basename = ModuleName ++ ".erl",
+    Filename = ReportDirectory ++ Basename,
+    write_to_file(Filename, String),
+    Filename.
+
+is_compilable(T) ->
+    S = [erl_syntax:revert(T2) || T2 <- erl_syntax:form_list_elements(eval(T))],
+    C = compile:forms(S, [strong_validation, return_errors, nowarn_unused_vars]),
+    element(1, C) /= ok andalso io:format("\nnem fordul:(\n"),
+    element(1, C) == ok.
+
+generate_and_test_qc() ->
+    ReportDirectory = mktmpdir(),
+    ModuleName = "module1", %TODO
+    G = resize(20, erlgen:module(ModuleName, 20)),
+    G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
+                        {value, {_, Value}} -> Value;
+                        false -> []
+                    end),
+    G3 = ?SUCHTHAT(T, G2, is_compilable(T)),
+    P = ?FORALL(T, G3, ?WHENFAIL(io:format("~n~s~n", [erl_prettypr:format(eqc_symbolic:eval(T))]),
+        begin
+            ProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
+            FilePath = ReportDirectory ++ ModuleName ++ ".erl",
+            write_to_file(FilePath, ProgramText),
+            execute_and_compare_result(FilePath, ReportDirectory)
+        end)),
+    [eqc:quickcheck(eqc:numtests(1, P))].
+
+%% ---------------------------------------------------------------------
+
 parser_main_arguments([]) ->
     help;
 parser_main_arguments(Args) when is_list(Args) ->
     case hd(Args) of
         "random" -> {runRandomTests, list_to_integer(lists:nth(2, Args))};
+        "randomqc" -> runRandomTestQC;
         _ -> {runTests, Args}
     end;
 parser_main_arguments(_) ->
@@ -135,6 +170,7 @@ report_result(Results) ->
 main(Args) ->
     case parser_main_arguments(Args) of
         {runRandomTests, NoT} -> Results = generate_and_multiple_test(NoT);
+        runRandomTestQC -> Results = generate_and_test_qc();
         {runTests, Tests} -> Results = run_multiple_test(Tests);
         help -> Results = help;
         true -> Results = help
