@@ -36,7 +36,7 @@ parse_coq_result(Output) when is_integer(Output) ->
     {error, "Expected string"};
 parse_coq_result(Output) ->
     case string:split(Output, "= Some", leading) of
-        [_ | Tail] ->
+        [_ | [Tail]] ->
             ToParse = lists:flatten(string:replace(Tail, ": option Value\n", "")),
             {ok, parse(ToParse)};
         _ ->
