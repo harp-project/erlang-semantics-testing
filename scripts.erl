@@ -3,7 +3,7 @@
 
 -module(scripts).
 
--include_lib("eqc/include/eqc.hrl").
+-include("./eqc-2.01.0/include/eqc.hrl").
 
 -compile([export_all]).
 

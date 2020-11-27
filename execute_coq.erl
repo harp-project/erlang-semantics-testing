@@ -2,17 +2,17 @@
 
 -export([execute/3]).
 
-map_result_to_erlang(String) ->
-    Remove = [X || X <- String, X =/= $\n, X =/= $", X =/= $`, X =/= $@],
-    L = lists:flatten(string:replace(
-          lists:flatten(string:replace(
-                        lists:flatten(string:replace(Remove, "==>", "=>", all)),
-                        "' ", "'", all)),
-                      " '", "'", all)),
-    L.
+% map_result_to_erlang(String) ->
+    % Remove = [X || X <- String, X =/= $\n, X =/= $", X =/= $`, X =/= $@],
+    % L = lists:flatten(string:replace(
+          % lists:flatten(string:replace(
+                        % lists:flatten(string:replace(Remove, "==>", "=>", all)),
+                        % "' ", "'", all)),
+                      % " '", "'", all)),
+    % L.
 
 parse(Expression) ->
-    {ok, Tokens, _} = erl_scan:string(map_result_to_erlang(Expression)++"."),
+    {ok, Tokens, _} = erl_scan:string(Expression++"."),
     {ok, Parsed} = erl_parse:parse_exprs(Tokens),
     {value, Result, _} = erl_eval:exprs(Parsed, []),
     Result.
@@ -42,7 +42,8 @@ parse_coq_result(Output) when is_integer(Output) ->
 parse_coq_result(Output) ->
     case string:split(Output, "= Some", leading) of
         [_ | [Tail]] ->
-            ToParse = lists:flatten(string:replace(Tail, ": option Value\n", "")),
+            Tail2 = tl(lists:dropwhile(fun(X) -> X /= $" end, Tail)),
+            ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail2)))),
             {ok, parse(ToParse)};
         _ ->
             io:format("Cannot parse: ~p~n", [Output]),
