@@ -3,6 +3,7 @@
 
 -module(scripts).
 
+% -include_lib("eqc/include/eqc.hrl"). % This does not work on Windows Subsystem for Linux
 -include("./eqc-2.01.0/include/eqc.hrl").
 
 -compile([export_all]).
