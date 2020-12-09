@@ -27,8 +27,7 @@ mktmpdir() ->
     io:format("Report Directory created: ~s~n", [DirPath]),
     DirPath.
 
-report(Test, ReportDirectory, Result) ->
-    Success = is_homogene(Result),
+report(Test, ReportDirectory, Result, Success) ->
     write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success])),
     case Success of
        false -> io:format("~n ~s failed ~p~n", [Test, Result]),
@@ -36,20 +35,94 @@ report(Test, ReportDirectory, Result) ->
        true  -> io:format(".")
     end.
 
-is_homogene(List) ->
-    [Head | Tail] = List,
-    lists:all(fun(Elem) -> Elem == Head end, Tail).
+compare_results([{Ok, Head} | Tail]) ->
+    lists:all(fun(Elem) ->
+                 case Elem of
+                   {Ok, {Result, Trace}} -> Result == Head;
+                   {Ok, Result}          -> Result == Head;
+                   _                     -> io:format("Illegal result format!~n"), 
+                                            false
+                 end
+                   end, Tail);
+compare_results(_) -> io:format("Illegal result format!~n"), false.
 
+%% returns Bool
 execute_and_compare_result(Test, ReportDirectory) ->
     Basename = remove_extension(Test),
     ModuleName = remove_directory(Basename),
     Result = [
         execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        %execute_k:execute(Basename, ModuleName, ReportDirectory),
         execute_coq:execute(Basename, ModuleName, ReportDirectory)
+        %execute_k:execute(Basename, ModuleName, ReportDirectory)
     ],
-    report(ModuleName, ReportDirectory, Result),
-    is_homogene(Result).
+    Success = compare_results(Result),
+    report(ModuleName, ReportDirectory, Result, Success),
+    
+    update_coq_coverage(Result),
+    io:format("~n~p~n", [Result]),
+    Success.
+
+
+%% ---------------------------------------------------------------------
+%% Coq Coverage measurement
+
+%% CAUTION: Uses the fact, that the Coq result is the second one in the list
+%% returns #{...}
+update_coq_coverage(Result) ->
+  case Result of
+    [ErlResult, {Ok, {CoqResult, CoqTrace}} | _] -> process_trace(CoqTrace);
+    _                                            -> #{}
+  end
+.
+
+%% Processes the semantic trace of the used rules, and updates the report map
+%% returns #{...}
+process_trace(Trace) ->
+  ReportMap = get(coq_coverage_map),
+  UpdatedReportMap = lists:foldr(fun(Elem, Acc) ->
+                                      maps:update_with(Elem, fun(X) -> X + 1 end, Acc) 
+                                 end, ReportMap, Trace),
+  put(coq_coverage_map, UpdatedReportMap).
+
+%% FILL UP INITIAL MAP WITH KEY-0 PAIRS
+default_map() ->
+  lists:foldr(fun(Elem, Acc) -> maps:put(Elem, 0, Acc) end, #{}, semantic_rules()).
+
+%% RULE CATEGORIES
+
+coq_list_rules() -> ['_EVAL_LIST_CONS', '_EVAL_LIST_EMPTY', '_EVAL_LIST_EX_PROP', '_EVAL_LIST_EX_CREATE'].
+case_rules() -> ['_EVAL_CASE', '_EVAL_CASE_EX','_EVAL_CASE_IFCLAUSE'].
+case_helper_rules() -> ['_EVAL_CASE_TRUE', '_EVAL_CASE_FALSE', '_EVAL_CASE_NOMATCH'].
+apply_rules() -> ['_EVAL_APP', '_EVAL_APP_EX', '_EVAL_APP_EX_PARAM', '_EVAL_APP_EX_BADFUN', '_EVAL_APP_EX_BADARITY'].
+list_rules() -> ['_EVAL_CONS', '_EVAL_NIL', '_EVAL_CONS_HD_EX', '_EVAL_CONS_TL_EX'].
+call_rules() -> ['_EVAL_CALL', '_EVAL_CALL_EX'].
+primop_rules() -> ['_EVAL_PRIMOP', '_EVAL_PRIMOP_EX'].
+try_rules() -> ['_EVAL_TRY', '_EVAL_CATCH'].
+variable_rule() -> ['_EVAL_VAR'].
+funid_rule() -> ['_EVAL_FUNID'].
+literal_rule() -> ['_EVAL_LIT'].
+fun_rule() -> ['_EVAL_FUN'].
+tuple_rules() -> ['_EVAL_TUPLE', '_EVAL_TUPLE_EX'].
+let_rules() -> ['_EVAL_LET', '_EVAL_LET_EX'].
+seq_rules() -> ['_EVAL_SEQ', '_EVAL_SEQ_EX'].
+map_rules() -> ['_EVAL_MAP', '_EVAL_MAP_EX'].
+letrec_rule() -> ['_EVAL_LETREC'].
+exp_list_rules() -> ['_EVAL_VALUES'].
+single_rule() -> ['_EVAL_SINGLE'].
+error_rules() ->  ['_FAIL', '_TIMEOUT'].
+
+%% Semantics rules not including exceptional evaluation
+exceptionfree_rules() -> ['_EVAL_LIST_CONS', '_EVAL_LIST_EMPTY', '_EVAL_CASE', '_EVAL_CASE_TRUE', '_EVAL_CASE_FALSE', '_EVAL_CASE_NOMATCH',
+                          '_EVAL_APP', '_EVAL_CONS', '_EVAL_NIL', '_EVAL_CALL', '_EVAL_PRIMOP', '_EVAL_VAR', '_EVAL_FUNID', '_EVAL_LIT',
+                          '_EVAL_FUN', '_EVAL_TUPLE', '_EVAL_LET', '_EVAL_SEQ', '_EVAL_MAP', '_EVAL_LETREC', '_EVAL_VALUES', '_EVAL_SINGLE'].
+
+%% All semantics rules
+semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ apply_rules() ++ list_rules() ++ call_rules() ++
+                    primop_rules() ++ try_rules() ++ variable_rule() ++ funid_rule() ++ literal_rule() ++ fun_rule() ++ error_rules() ++
+                    tuple_rules() ++ let_rules() ++ seq_rules() ++ map_rules() ++ letrec_rule() ++ exp_list_rules() ++ single_rule().
+
+%% ---------------------------------------------------------------------
+
 
 write_to_file(Filename, Content) ->
     case file:open(Filename, [write]) of
@@ -166,9 +239,39 @@ report_result(Results) ->
         length(Results),
         count(true, Results),
         length(Results) - count(true, Results)
-    ]).
+    ]),
+  
+%% ---------------------------------------------------------------------
+  %% Reporting coverage
+  
+  %% Rule coverage map:
+    CoqCoverage = get(coq_coverage_map),
+  
+  %% used rule percent
+    UsedRulesNr = maps:size(maps:filter(fun(K, V) -> V > 0 end, CoqCoverage)),
+    io:format("~n~nCoq coverage data:~n"),
+    io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(semantic_rules())) * 100]),
+  
+  %% used exception-free rule percent
+    ExcFreeRules = exceptionfree_rules(),
+    UsedExceptionFreeRulesNr = maps:size(maps:filter(fun(K, V) -> lists:member(K, ExcFreeRules) and (V > 0) end, CoqCoverage)),
+    io:format("Rule coverage without exceptions: ~p %~n", [(UsedExceptionFreeRulesNr / length(ExcFreeRules)) * 100]),
+   
+  %% How many times were specific rules used
+    io:format("~nRules used:~n~n"),
+    pp_map(CoqCoverage)
+%% ---------------------------------------------------------------------
+    .
+
+%% Map pretty-printer
+pp_map(Map) when is_map(Map) ->
+  %% workaround, we need foreach
+  maps:fold(fun(K, V, Acc) -> io:format("~p rule was used ~p times~n", [K, V]), Acc end, 0, Map).
 
 main(Args) ->
+  %% Initialize with the Coq coverage map, where all rules were used 0 times:
+    put(coq_coverage_map, default_map()),
+    
     case parser_main_arguments(Args) of
         {runRandomTests, NoT} -> Results = generate_and_multiple_test(NoT);
         runRandomTestQC -> Results = generate_and_test_qc();
