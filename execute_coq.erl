@@ -40,7 +40,6 @@ parse_coq_result(Output) when is_integer(Output) ->
     io:format("coq result should be string~n"),
     {error, "Expected string"};
 parse_coq_result(Output) ->
-    io:format("Output: ~n~p~n", [Output]),
     case string:split(Output, "= Some", leading) of
         [_ | [Tail]] ->
             Tail2 = tl(lists:dropwhile(fun(X) -> X /= $" end, Tail)),

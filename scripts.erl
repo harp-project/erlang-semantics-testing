@@ -9,6 +9,7 @@
 -compile([export_all]).
 
 -define(REPORT_DIRECTORY, "./reports/").
+-define(COQ_FILENAME, "./reports/coq_coverage.csv").
 
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
@@ -28,7 +29,7 @@ mktmpdir() ->
     DirPath.
 
 report(Test, ReportDirectory, Result, Success) ->
-    write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success])),
+    write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
        false -> io:format("~n ~s failed ~p~n", [Test, Result]),
                 io:format("X");
@@ -38,10 +39,10 @@ report(Test, ReportDirectory, Result, Success) ->
 compare_results([{Ok, Head} | Tail]) ->
     lists:all(fun(Elem) ->
                  case Elem of
-                   {Ok, {Result, Trace}} -> Result == Head;
-                   {Ok, Result}          -> Result == Head;
-                   _                     -> io:format("Illegal result format!~n"), 
-                                            false
+                   {Ok, {Result, _}} -> Result == Head;
+                   {Ok, Result}      -> Result == Head;
+                   _                 -> io:format("Illegal result format!~n"), 
+                                        false
                  end
                    end, Tail);
 compare_results(_) -> io:format("Illegal result format!~n"), false.
@@ -70,8 +71,9 @@ execute_and_compare_result(Test, ReportDirectory) ->
 %% returns #{...}
 update_coq_coverage(Result) ->
   case Result of
-    [ErlResult, {Ok, {CoqResult, CoqTrace}} | _] -> process_trace(CoqTrace);
-    _                                            -> #{}
+    %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
+    [_, {_, {_, CoqTrace}} | _] -> process_trace(CoqTrace);
+    _                           -> #{}
   end
 .
 
@@ -124,8 +126,8 @@ semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ a
 %% ---------------------------------------------------------------------
 
 
-write_to_file(Filename, Content) ->
-    case file:open(Filename, [write]) of
+write_to_file(Filename, Content, Mode) ->
+    case file:open(Filename, [Mode]) of
         {ok, Fd} ->
             file:write(Fd, Content),
             file:close(Fd);
@@ -142,7 +144,7 @@ generate_and_save_random_test(Id, ReportDirectory) ->
     Basename = ModuleName ++ ".erl",
     Filename = ReportDirectory ++ Basename,
     % TODO: egg_tester:y() should return with a string instead of printing it
-    %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()])),
+    %       write_to_file(Filename, io_lib:format('-module(module~p).~n-export([main/0]).~n~p', [Id, egg_tester:y()]), write),
     case
         exec:shell_exec(
             io_lib:format("erl -pa eqc-2.01.0/ebin -pa generator/ebin -noshell -eval \"random:seed(erlang:now()), io:format('~~p', [erl_2020_gen:sample(module~p, ~p)])\" -eval 'init:stop()'",
@@ -152,7 +154,8 @@ generate_and_save_random_test(Id, ReportDirectory) ->
         {0, Output} ->
             write_to_file(
                 Filename,
-                generator_remove_junk(Output)
+                generator_remove_junk(Output),
+                write
             );
         {_, Output} ->
             io:format("Cannot generate code ~p~n", [Output])
@@ -192,7 +195,7 @@ save_test(String, Id, ReportDirectory) ->
     ModuleName = io_lib:format("module~p", [Id]),
     Basename = ModuleName ++ ".erl",
     Filename = ReportDirectory ++ Basename,
-    write_to_file(Filename, String),
+    write_to_file(Filename, String, write),
     Filename.
 
 is_compilable(T) ->
@@ -214,7 +217,7 @@ generate_and_test_qc() ->
         begin
             ProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
             FilePath = ReportDirectory ++ ModuleName ++ ".erl",
-            write_to_file(FilePath, ProgramText),
+            write_to_file(FilePath, ProgramText, write),
             execute_and_compare_result(FilePath, ReportDirectory)
         end)),
     [eqc:quickcheck(eqc:numtests(1, P))].
@@ -248,9 +251,10 @@ report_result(Results) ->
     CoqCoverage = get(coq_coverage_map),
   
   %% used rule percent
-    UsedRulesNr = maps:size(maps:filter(fun(K, V) -> V > 0 end, CoqCoverage)),
+    UsedRulesNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, CoqCoverage)),
+    Semantics_rules = semantic_rules(),
     io:format("~n~nCoq coverage data:~n"),
-    io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(semantic_rules())) * 100]),
+    io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(Semantics_rules)) * 100]),
   
   %% used exception-free rule percent
     ExcFreeRules = exceptionfree_rules(),
@@ -259,7 +263,22 @@ report_result(Results) ->
    
   %% How many times were specific rules used
     io:format("~nRules used:~n~n"),
-    pp_map(CoqCoverage)
+    pp_map(CoqCoverage),
+  
+  %% Report results to coq_coverage.cs
+  StatLine = maps:fold(fun(_, V, Acc) -> integer_to_list(V) ++ ";" ++ Acc end, "\n", CoqCoverage), % "~n" does not work here, only "\n"
+  case filelib:is_regular(?COQ_FILENAME) of
+    %% No header needed
+    true  -> write_to_file(?COQ_FILENAME, StatLine, append);
+    
+    %% header needed
+    false ->
+      begin
+        HeaderLine = maps:fold(fun(K, _, Acc) -> atom_to_list(K) ++ ";" ++ Acc end, "\n", CoqCoverage),
+        write_to_file(?COQ_FILENAME, HeaderLine ++ StatLine, append)
+      end
+  end
+  
 %% ---------------------------------------------------------------------
     .
 
