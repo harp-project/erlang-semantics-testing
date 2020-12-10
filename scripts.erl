@@ -91,31 +91,31 @@ default_map() ->
 
 %% RULE CATEGORIES
 
-coq_list_rules() -> ['_EVAL_LIST_CONS', '_EVAL_LIST_EMPTY', '_EVAL_LIST_EX_PROP', '_EVAL_LIST_EX_CREATE'].
-case_rules() -> ['_EVAL_CASE', '_EVAL_CASE_EX','_EVAL_CASE_IFCLAUSE'].
-case_helper_rules() -> ['_EVAL_CASE_TRUE', '_EVAL_CASE_FALSE', '_EVAL_CASE_NOMATCH'].
-apply_rules() -> ['_EVAL_APP', '_EVAL_APP_EX', '_EVAL_APP_EX_PARAM', '_EVAL_APP_EX_BADFUN', '_EVAL_APP_EX_BADARITY'].
-list_rules() -> ['_EVAL_CONS', '_EVAL_NIL', '_EVAL_CONS_HD_EX', '_EVAL_CONS_TL_EX'].
-call_rules() -> ['_EVAL_CALL', '_EVAL_CALL_EX'].
-primop_rules() -> ['_EVAL_PRIMOP', '_EVAL_PRIMOP_EX'].
-try_rules() -> ['_EVAL_TRY', '_EVAL_CATCH'].
-variable_rule() -> ['_EVAL_VAR'].
-funid_rule() -> ['_EVAL_FUNID'].
-literal_rule() -> ['_EVAL_LIT'].
-fun_rule() -> ['_EVAL_FUN'].
-tuple_rules() -> ['_EVAL_TUPLE', '_EVAL_TUPLE_EX'].
-let_rules() -> ['_EVAL_LET', '_EVAL_LET_EX'].
-seq_rules() -> ['_EVAL_SEQ', '_EVAL_SEQ_EX'].
-map_rules() -> ['_EVAL_MAP', '_EVAL_MAP_EX'].
-letrec_rule() -> ['_EVAL_LETREC'].
-exp_list_rules() -> ['_EVAL_VALUES'].
-single_rule() -> ['_EVAL_SINGLE'].
+coq_list_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_LIST_EX_PROP', '_LIST_EX_CREATE'].
+case_rules() -> ['_CASE', '_CASE_EX','_CASE_IFCLAUSE'].
+case_helper_rules() -> ['_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH'].
+apply_rules() -> ['_APP', '_APP_EX', '_APP_EX_PARAM', '_APP_EX_BADFUN', '_APP_EX_BADARITY'].
+list_rules() -> ['_CONS', '_NIL', '_CONS_HD_EX', '_CONS_TL_EX'].
+call_rules() -> ['_CALL', '_CALL_EX'].
+primop_rules() -> ['_PRIMOP', '_PRIMOP_EX'].
+try_rules() -> ['_TRY', '_CATCH'].
+variable_rule() -> ['_VAR'].
+funid_rule() -> ['_FUNID'].
+literal_rule() -> ['_LIT'].
+fun_rule() -> ['_FUN'].
+tuple_rules() -> ['_TUPLE', '_TUPLE_EX'].
+let_rules() -> ['_LET', '_LET_EX'].
+seq_rules() -> ['_SEQ', '_SEQ_EX'].
+map_rules() -> ['_MAP', '_MAP_EX'].
+letrec_rule() -> ['_LETREC'].
+exp_list_rules() -> ['_VALUES'].
+single_rule() -> ['_SINGLE'].
 error_rules() ->  ['_FAIL', '_TIMEOUT'].
 
 %% Semantics rules not including exceptional evaluation
-exceptionfree_rules() -> ['_EVAL_LIST_CONS', '_EVAL_LIST_EMPTY', '_EVAL_CASE', '_EVAL_CASE_TRUE', '_EVAL_CASE_FALSE', '_EVAL_CASE_NOMATCH',
-                          '_EVAL_APP', '_EVAL_CONS', '_EVAL_NIL', '_EVAL_CALL', '_EVAL_PRIMOP', '_EVAL_VAR', '_EVAL_FUNID', '_EVAL_LIT',
-                          '_EVAL_FUN', '_EVAL_TUPLE', '_EVAL_LET', '_EVAL_SEQ', '_EVAL_MAP', '_EVAL_LETREC', '_EVAL_VALUES', '_EVAL_SINGLE'].
+exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH',
+                          '_APP', '_CONS', '_NIL', '_CALL', '_PRIMOP', '_VAR', '_FUNID', '_LIT',
+                          '_FUN', '_TUPLE', '_LET', '_SEQ', '_MAP', '_LETREC', '_VALUES', '_SINGLE'].
 
 %% All semantics rules
 semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ apply_rules() ++ list_rules() ++ call_rules() ++
