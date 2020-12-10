@@ -40,14 +40,27 @@ parse_coq_result(Output) when is_integer(Output) ->
     io:format("coq result should be string~n"),
     {error, "Expected string"};
 parse_coq_result(Output) ->
-    case string:split(Output, "= Some", leading) of
+    case string:split(Output, "__coqresult:", leading) of
         [_ | [Tail]] ->
-            Tail2 = tl(lists:dropwhile(fun(X) -> X /= $" end, Tail)),
-            ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail2)))),
+          %% -----------------------------------------
+          %% Coq result is a correct value
+            ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
             {ok, parse(ToParse)};
+          %% -----------------------------------------
         _ ->
-            io:format("Cannot parse: ~p~n", [Output]),
-            {error, "Cannot parse"}
+          %% -----------------------------------------
+          %% Coq result is either an exception, or some error happened
+            case string:split(Output, "__exceptioncoqresult:", leading) of
+               %% Get the reason of the exception, which will be compared to the Erlang exception reason
+                 [_ | [Tail]] ->
+                      ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
+                      {{_, Reason, _}, Trace} = parse(ToParse),
+                      {ok, {Reason, Trace}};
+                 _ -> %% Something else was the result
+                    io:format("Cannot parse: ~p~n", [Output]),
+                    {error, "Cannot parse"}
+            end
+          %% -----------------------------------------
     end
     .
 

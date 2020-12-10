@@ -24,14 +24,25 @@ execute(Test, ModuleName, ReportDirectory) ->
     case compile(Test ++ ".erl", ReportDirectory) of
         {0, _} ->
             case run(ModuleName, ReportDirectory) of
+                %% -----------------------------------------
+                %% Erlang execution succeeded
                 {0, Output} ->
                     {ok, parse(Output)};
+                %% -----------------------------------------
+                %% Erlang execution failed
                 {RetVal, Output} ->
-                    {error,
-                        io_lib:format(
-                            "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
-                            [ModuleName, RetVal, Output]
-                        )}
+                    try
+                      %% select the exception reason from the output string
+                      ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
+                      {ok, list_to_atom(ToParse)}
+                    catch
+                      _ -> {error,
+                              io_lib:format(
+                                  "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
+                                  [ModuleName, RetVal, Output]
+                              )}
+                    end
+                %% -----------------------------------------
             end;
         _ ->
             {error, io:format("execute_erlang: failed to compile module ~p~n", [ModuleName])}

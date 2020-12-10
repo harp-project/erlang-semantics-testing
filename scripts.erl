@@ -60,7 +60,6 @@ execute_and_compare_result(Test, ReportDirectory) ->
     report(ModuleName, ReportDirectory, Result, Success),
     
     update_coq_coverage(Result),
-    io:format("~n~p~n", [Result]),
     Success.
 
 
