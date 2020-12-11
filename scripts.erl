@@ -204,8 +204,10 @@ is_compilable(T) ->
     element(1, C) == ok.
 
 generate_and_test_qc() ->
+    random:seed(erlang:now()),
     ReportDirectory = mktmpdir(),
     ModuleName = "module1", %TODO
+    
     G = resize(20, erlgen:module(ModuleName, 20)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
