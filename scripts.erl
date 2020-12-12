@@ -53,8 +53,8 @@ execute_and_compare_result(Test, ReportDirectory) ->
     ModuleName = remove_directory(Basename),
     Result = [
         execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory)
-        %execute_k:execute(Basename, ModuleName, ReportDirectory)
+        execute_coq:execute(Basename, ModuleName, ReportDirectory),
+        execute_k:execute(Basename, ModuleName, ReportDirectory)
     ],
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
