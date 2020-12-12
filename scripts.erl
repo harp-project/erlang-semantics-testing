@@ -11,6 +11,8 @@
 -define(REPORT_DIRECTORY, "./reports/").
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 
+-define(ENABLE_SHRINKING, true).
+
 remove_extension(Filename) ->
     hd(string:split(Filename, ".", trailing)).
 
@@ -214,7 +216,7 @@ generate_and_test_qc() ->
                         false -> []
                     end),
     G3 = ?SUCHTHAT(T, G2, is_compilable(T)),
-    P = ?FORALL(T, G3, ?WHENFAIL(io:format("~n~s~n", [erl_prettypr:format(eqc_symbolic:eval(T))]),
+    P = ?FORALL(T, if ?ENABLE_SHRINKING -> G3; true -> noshrink(G3) end, ?WHENFAIL(io:format("~n~s~n", [erl_prettypr:format(eqc_symbolic:eval(T))]),
         begin
             ProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
             FilePath = ReportDirectory ++ ModuleName ++ ".erl",
