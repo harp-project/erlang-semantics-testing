@@ -1,3 +1,6 @@
 [submodule "Core-Erlang-Formalization"]
 	path = Core-Erlang-Formalization
 	url = git@github.com:harp-project/Core-Erlang-Formalization.git
+[submodule "erlang-semantics"]
+	path = erlang-semantics
+	url = https://github.com/harp-project/erlang-semantics.git
