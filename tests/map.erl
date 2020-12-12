@@ -1,4 +1,4 @@
 -module(map).
--compile([export_all]).
+-export([main/0]).
 
 main() -> #{1 => 1 , 2 => 2}.
