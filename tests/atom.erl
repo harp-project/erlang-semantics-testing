@@ -1,4 +1,4 @@
 -module(atom).
--compile([export_all]).
+-export([main/0]).
 
 main() -> atom1.

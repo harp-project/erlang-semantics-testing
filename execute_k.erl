@@ -36,11 +36,16 @@ write_to_file(Filename, Content) ->
 
 parse(Expression) ->
     {ok, Tokens, _} = erl_scan:string(Expression++"."),
-    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
-    {value, Result, _} = erl_eval:exprs(Parsed, []),
-    Result.
+    try 
+      {ok, Parsed} = erl_parse:parse_exprs(Tokens),
+      {value, Result, _} = erl_eval:exprs(Parsed, []),
+      Result
+    catch
+      _:_ -> {error, "Illegal K result format: ~n" ++ Expression}
+    end
+.
 
-%% Returns {ok, Exp} if the k result was parseable, otherwise {error, errormsg}
+
 get_k_result_from_string(Output) ->
   case string:split(Output, "<k>", leading) of
     [_ | [Tail]] -> case string:split(Tail, "</k>", leading) of
@@ -70,6 +75,6 @@ get_k_result_from_xml(FileName) ->
            {error, "Illegal K result format!"}
      end
    catch
-       _ -> {error, "Illegal K result format!"}
+       _:_ -> {error, "Illegal K result format!"}
    end
 .
