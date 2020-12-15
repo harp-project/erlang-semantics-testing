@@ -3,22 +3,6 @@
 -export([execute/3, setup/0, report/0, update_coverage/1]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
-
-% map_result_to_erlang(String) ->
-    % Remove = [X || X <- String, X =/= $\n, X =/= $", X =/= $`, X =/= $@],
-    % L = lists:flatten(string:replace(
-          % lists:flatten(string:replace(
-                        % lists:flatten(string:replace(Remove, "==>", "=>", all)),
-                        % "' ", "'", all)),
-                      % " '", "'", all)),
-    % L.
-
-parse(Expression) ->
-    {ok, Tokens, _} = erl_scan:string(Expression++"."),
-    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
-    {value, Result, _} = erl_eval:exprs(Parsed, []),
-    Result.
-
 -define(COQDIR, "Core-Erlang-Formalization/src").
 
 compile_coq(BaseName, ReportDirectory) ->
@@ -47,7 +31,7 @@ parse_coq_result(Output) ->
           %% -----------------------------------------
           %% Coq result is a correct value
             ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-            {ok, parse(ToParse)};
+            {ok, misc:parse(ToParse)};
           %% -----------------------------------------
         _ ->
           %% -----------------------------------------
@@ -56,7 +40,7 @@ parse_coq_result(Output) ->
                %% Get the reason of the exception, which will be compared to the Erlang exception reason
                  [_ | [Tail]] ->
                       ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-                      {{_, Reason, _}, Trace} = parse(ToParse),
+                      {{_, Reason, _}, Trace} = misc:parse(ToParse),
                       {ok, {Reason, Trace}};
                  _ -> %% Something else was the result
                     io:format("Cannot parse: ~p~n", [Output]),

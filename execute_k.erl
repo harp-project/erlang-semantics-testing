@@ -18,45 +18,29 @@ execute(BaseName, ModuleName, ReportDirectory) ->
     of
         {_, Output} ->
             FileName = ReportDirectory ++ ModuleName ++ ".kresult",
-		    write_to_file(FileName, Output),
+		    misc:write_to_file(FileName, Output),
             get_k_result_from_string(Output);
         _ ->
             io:format("Error running krun~n"),
             -1
     end.
 
-write_to_file(Filename, Content) ->
-    case file:open(Filename, [write]) of
-        {ok, Fd} ->
-            file:write(Fd, Content),
-            file:close(Fd);
-        {Status, Msg} ->
-            io:format("Error opening file ~s: ~s", [Status, Msg])
-    end.
-
-parse(Expression) ->
-    {ok, Tokens, _} = erl_scan:string(Expression++"."),
-    try 
-      {ok, Parsed} = erl_parse:parse_exprs(Tokens),
-      {value, Result, _} = erl_eval:exprs(Parsed, []),
-      Result
-    catch
-      _:_ -> {error, "Illegal K result format: ~n" ++ Expression}
-    end
-.
-
 
 get_k_result_from_string(Output) ->
-  case string:split(Output, "<k>", leading) of
-    [_ | [Tail]] -> case string:split(Tail, "</k>", leading) of
-                       [Head | _] -> 
-                             begin
-                               ToParse = lists:flatten(string:replace(Head, ".Exps", "")),
-							   {ok, parse(ToParse)}
-                             end;
-                       _          -> {error, "Illegal K result format: ~n" ++ Output}
-                    end;
-    _            -> {error, "Illegal K result format: ~n" ++ Output}
+  try 
+    case string:split(Output, "<k>", leading) of
+      [_ | [Tail]] -> case string:split(Tail, "</k>", leading) of
+                         [Head | _] -> 
+                               begin
+                                 ToParse = lists:flatten(string:replace(Head, ".Exps", "")),
+			  				     {ok, misc:parse(ToParse)}
+                               end;
+                         _          -> {error, "Illegal K result format: ~n" ++ Output}
+                      end;
+      _              -> {error, "Illegal K result format: ~n" ++ Output}
+    end
+  catch
+    _:_ -> {error, "Illegal K result format: ~n" ++ Output}
   end
 .
 
@@ -70,7 +54,7 @@ get_k_result_from_xml(FileName) ->
         [_, KCell | _] ->
 		  [KTuple] = element(9, KCell),
 		  ToParse = element(5, KTuple),
-		  {ok, parse(ToParse)};
+		  {ok, misc:parse(ToParse)};
         _ -> 
            {error, "Illegal K result format!"}
      end

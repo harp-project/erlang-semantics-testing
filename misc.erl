@@ -21,3 +21,9 @@ write_to_file(Filename, Content, Mode) ->
         {Status, Msg} ->
             io:format("Error opening file ~s: ~s", [Status, Msg])
     end.
+
+parse(Expression) ->
+    {ok, Tokens, _} = erl_scan:string(Expression++"."),
+    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
+    {value, Result, _} = erl_eval:exprs(Parsed, []),
+    Result.

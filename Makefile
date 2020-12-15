@@ -42,3 +42,4 @@ clean:
 	rm -f -- execute_erl.beam
 	rm -f -- execute_coq.beam
 	rm -f -- execute_k.beam
+	rm -f -- misc.beam

@@ -2,12 +2,6 @@
 
 -export([execute/3]).
 
-parse(Expression) ->
-    {ok, Tokens, _} = erl_scan:string(Expression++"."),
-    {ok, Parsed} = erl_parse:parse_exprs(Tokens),
-    {value, Result, _} = erl_eval:exprs(Parsed, []),
-    Result.
-
 compile(Path, ReportDirectory) ->
     exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~s\"", [ReportDirectory, Path])).
 
@@ -27,7 +21,7 @@ execute(Test, ModuleName, ReportDirectory) ->
                 %% -----------------------------------------
                 %% Erlang execution succeeded
                 {0, Output} ->
-                    {ok, parse(Output)};
+                    {ok, misc:parse(Output)};
                 %% -----------------------------------------
                 %% Erlang execution failed
                 {RetVal, Output} ->
