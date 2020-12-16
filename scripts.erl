@@ -34,10 +34,10 @@ report(Test, ReportDirectory, Result, Success) ->
 compare_results([{Ok, Head} | Tail]) ->
     lists:all(fun(Elem) ->
                  case Elem of
-                   {Ok, {Result, _}} -> Result == Head;
-                   {Ok, Result}      -> Result == Head;
-                   _                 -> io:format("Illegal result format!~n"), 
-                                        false
+                   {Ok, {Result, _, _}} -> Result == Head;
+                   {Ok, Result}         -> Result == Head;
+                   _                    -> io:format("Illegal result format!~n"), 
+                                           false
                  end
                    end, Tail);
 compare_results(_) -> io:format("Illegal result format!~n"), false.

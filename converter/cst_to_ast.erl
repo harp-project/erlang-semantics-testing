@@ -3,7 +3,7 @@
 -include_lib("compiler/src/core_parse.hrl").
 
 -define(traditional,
-"Require Core_Erlang_Tactics.
+"Require Core_Erlang.Core_Erlang_Tactics.
 Import Core_Erlang_Tactics.Tactics.
 Import Core_Erlang_Syntax.Value_Notations.
 Import Core_Erlang_Semantics.Semantics.
@@ -22,7 +22,7 @@ Abort. \n\n
 \n").
 
 -define(functional,
-"Require Core_Erlang_Functional_Big_Step.
+"Require Core_Erlang.Core_Erlang_Functional_Big_Step.
 Import Core_Erlang_Functional_Big_Step.Functional_Big_Step.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
@@ -31,12 +31,12 @@ Compute result_value (fbs_expr ~p [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (E
 \n").
 
 -define(functional_traced,
-"Require Core_Erlang_Coverage.
+"Require Core_Erlang.Core_Erlang_Coverage.
 Import Core_Erlang_Coverage.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute result_value (fbs_expr ~p [] [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
+Compute result_value (fbs_expr ~p init_logs [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
 \n").
 
 -define(functional_limit, 100000).
