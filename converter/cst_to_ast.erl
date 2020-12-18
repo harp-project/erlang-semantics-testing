@@ -42,7 +42,7 @@ Compute result_value (fbs_expr ~p init_logs [] 0 (ESingle (ELetRec  [~s] (ESingl
 -define(functional_limit, 100000).
 
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalTraced; %functionalSemantic;
-map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> traditionalSemantic.
+map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> functionalSemantic.
 
 from_erl(Path, SemanticSelector) when is_boolean(SemanticSelector)  -> from_erl(Path, map_boolean_to_semantic_selector(SemanticSelector));
 from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector).

@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/3, setup/0, report/0, update_coverage/1]).
+-export([execute/4, setup/0, report/0, update_coverage/1]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 -define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
@@ -45,8 +45,10 @@ parse_coq_result(Output) ->
                %% Get the reason of the exception, which will be compared to the Erlang exception reason
                  [_ | [Tail]] ->
                       ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-                      {{_, Reason, _}, RuleTrace, BIFTrace} = misc:parse(ToParse),
-                      {ok, {Reason, RuleTrace, BIFTrace}};
+                      case misc:parse(ToParse) of
+                         {{_, Reason, _}, RuleTrace, BIFTrace} -> {ok, {Reason, RuleTrace, BIFTrace}};
+                         {_, Reason, _}                        -> {ok, Reason}
+                      end;
                  _ -> %% Something else was the result
                     io:format("Cannot parse: ~p~n", [Output]),
                     {error, "Cannot parse"}
@@ -55,11 +57,11 @@ parse_coq_result(Output) ->
     end
     .
 
-convert_erl_to_coq(TestPath, BaseName, ReportDirectory) ->
-    misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, true)).
+convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
+    misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, Tracing)).
 
-execute(TestPath, BaseName, ReportDirectory) ->
-    convert_erl_to_coq(TestPath, BaseName, ReportDirectory),
+execute(TestPath, BaseName, ReportDirectory, Tracing) ->
+    convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),
     Output = compile_coq(BaseName, ReportDirectory),
     parse_coq_result(Output).
 

@@ -11,7 +11,8 @@
 %% OPTIONS
 
 -define(REPORT_DIRECTORY, "./reports/").
--define(SHRINKING, false).
+-define(SHRINKING, true).
+-define(TRACING, false).
 
 %% ---------------------------------------------------------------------
 
@@ -48,12 +49,15 @@ test_case(Test, ReportDirectory) ->
     ModuleName = misc:remove_directory(Basename),
     Result = [
         execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory)
-        % execute_k:execute(Basename, ModuleName, ReportDirectory)
+        execute_coq:execute(Basename, ModuleName, ReportDirectory, ?TRACING)
+        %execute_k:execute(Basename, ModuleName, ReportDirectory)
     ],
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
-    execute_coq:update_coverage(Result),
+    if 
+      ?TRACING -> execute_coq:update_coverage(Result);
+      true     -> ok % do nothing
+    end,
     Success.
 
 %% ---------------------------------------------------------------------
@@ -126,4 +130,6 @@ main(Args) ->
         _                   -> help
     end,
     summary(Results),
-    execute_coq:report().
+    if ?TRACING -> execute_coq:report();
+       true     -> io:format("No Coq coverage data!")
+    end.
