@@ -71,8 +71,8 @@ execute(TestPath, BaseName, ReportDirectory, Tracing) ->
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
-    put(?COQ_RULE_LOC, default_rule_map()),
-    put(?COQ_BIF_LOC, default_bif_map()).
+    put(?COQ_RULE_LOC, misc:init_stat_map(semantic_rules())),
+    put(?COQ_BIF_LOC, misc:init_stat_map(bifs())).
 
 %% CAUTION: Uses the fact, that the Coq result is the second one in the list
 %% returns #{...}
@@ -92,13 +92,6 @@ process_trace(Trace, Loc) ->
                                       maps:update_with(K, fun(X) -> X + V end, Acc)
                                  end, ReportMap, Trace),
   put(Loc, UpdatedReportMap).
-
-%% FILL UP INITIAL MAP WITH KEY-0 PAIRS
-default_rule_map() ->
-  lists:foldr(fun(Elem, Acc) -> maps:put(Elem, 0, Acc) end, #{}, semantic_rules()).
-
-default_bif_map() ->
-  lists:foldr(fun(Elem, Acc) -> maps:put(Elem, 0, Acc) end, #{}, bifs()).
 
 %% RULE CATEGORIES
 
@@ -145,7 +138,8 @@ report() ->
   %% used rule percent
     UsedRulesNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, RuleCoverage)),
     Semantics_rules = semantic_rules(),
-    io:format("~n~nCoq coverage data:~n"),
+    misc:hline(),
+    io:format("Coq coverage data:~n"),
     io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(Semantics_rules)) * 100]),
   
   %% used exception-free rule percent
@@ -158,32 +152,17 @@ report() ->
   %   pp_map(RuleCoverage),
   
   %% Report results to coq_coverage.cs
-    report_coverage_to_csv(RuleCoverage, ?COQ_FILENAME),
+    misc:report_coverage_to_csv(RuleCoverage, ?COQ_FILENAME),
   
   %% BIF coverage:
     BIFCoverage = get(?COQ_BIF_LOC),
     UsedBIFNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, BIFCoverage)),
-    io:format("~n~nCoq built-in function coverage data:~n"),
     io:format("BIF coverage: ~p %~n", [(UsedBIFNr / length(bifs())) * 100]),
   
   %% Report results to coq_bif_coverage.csv
-    report_coverage_to_csv(BIFCoverage, ?COQ_BIF_FILENAME)
+    misc:report_coverage_to_csv(BIFCoverage, ?COQ_BIF_FILENAME),
+    misc:hline()
  .
-
-report_coverage_to_csv(Map, Filename) ->
-  StatLine = maps:fold(fun(_, V, Acc) -> integer_to_list(V) ++ ";" ++ Acc end, "\n", Map), % "~n" does not work here, only "\n"
-  case filelib:is_regular(Filename) of
-    %% No header needed
-    true  -> misc:write_to_file(Filename, StatLine, append);
-    
-    %% header needed
-    false ->
-      begin
-        HeaderLine = maps:fold(fun(K, _, Acc) -> atom_to_list(K) ++ ";" ++ Acc end, "\n", Map),
-        misc:write_to_file(Filename, HeaderLine ++ StatLine, append)
-      end
-  end
-.
 
 %% Map pretty-printer
 % pp_map(Map) when is_map(Map) ->

@@ -12,7 +12,7 @@
 
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, true).
--define(TRACING, false).
+-define(TRACING, true).
 
 %% ---------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ unit_test(Tests) when is_list(Tests) ->
 is_compilable(T) ->
     S = [erl_syntax:revert(T2) || T2 <- erl_syntax:form_list_elements(eval(T))],
     C = compile:forms(S, [strong_validation, return_errors, nowarn_unused_vars]),
-    element(1, C) /= ok andalso io:format("\nnem fordul:(\n"),
+    element(1, C) /= ok andalso io:format("\nGenerated file cannot be compiled :(\n"),
     element(1, C) == ok.
 
 random_test(NumTests) ->
@@ -124,12 +124,14 @@ parser_main_arguments(_) ->
 
 main(Args) ->
     execute_coq:setup(),
+    execute_erl:setup(),
     Results = case parser_main_arguments(Args) of
         {runRandTests, NoT} -> random_test(NoT);
         {runUnitTests, LoT} -> unit_test(LoT);
         _                   -> help
     end,
     summary(Results),
-    if ?TRACING -> execute_coq:report();
-       true     -> io:format("No Coq coverage data!")
+    if ?TRACING -> execute_coq:report(),
+                   execute_erl:report();
+       true     -> io:format("Coverage data is not measured!")
     end.
