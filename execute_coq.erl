@@ -79,19 +79,10 @@ setup() ->
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
-    [_, {_, {_, RuleTrace, BIFTrace}} | _] -> process_trace(RuleTrace, coq_rule_coverage_map), 
-                                              process_trace(BIFTrace, coq_bif_coverage_map);
-    _                           -> #{}
+    {_ ,{_, RuleTrace, BIFTrace}} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
+                                     misc:process_trace(BIFTrace, ?COQ_BIF_LOC);
+    _                             -> #{}
   end.
-
-%% Processes the semantic trace of the used rules, and updates the report map
-%% returns #{...}
-process_trace(Trace, Loc) ->
-  ReportMap = get(Loc),
-  UpdatedReportMap = maps:fold(fun(K, V, Acc) ->
-                                      maps:update_with(K, fun(X) -> X + V end, Acc)
-                                 end, ReportMap, Trace),
-  put(Loc, UpdatedReportMap).
 
 %% RULE CATEGORIES
 

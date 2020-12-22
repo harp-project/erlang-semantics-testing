@@ -37,7 +37,9 @@ report_coverage_to_csv(Map, Filename) ->
     %% header needed
     false ->
       begin
-        HeaderLine = maps:fold(fun(K, _, Acc) -> atom_to_list(K) ++ ";" ++ Acc end, "\n", Map),
+        HeaderLine = maps:fold(fun(K, _, Acc) -> if is_atom(K) -> atom_to_list(K);
+                                                    true -> K
+                                                 end ++ ";" ++ Acc end, "\n", Map),
         misc:write_to_file(Filename, HeaderLine ++ StatLine, append)
       end
   end
@@ -49,3 +51,10 @@ init_stat_map(List) ->
 
 hline() ->
     io:format("------------------------------------------------------------------------~n").
+
+process_trace(Trace, Loc) ->
+  ReportMap = get(Loc),
+  UpdatedReportMap = maps:fold(fun(K, V, Acc) ->
+                                      maps:update_with(K, fun(X) -> X + V end, Acc)
+                                 end, ReportMap, Trace),
+  put(Loc, UpdatedReportMap).

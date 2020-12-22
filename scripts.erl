@@ -71,7 +71,8 @@ test_case(Test, ReportDirectory) ->
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
     if 
-      ?TRACING -> execute_coq:update_coverage(Result);
+      ?TRACING -> execute_coq:update_coverage(element(2,Result)),
+                  execute_k:update_coverage(element(3,Result));
       true     -> ok % do nothing
     end,
     Success.
@@ -141,6 +142,7 @@ parser_main_arguments(_) ->
 main(Args) ->
     execute_coq:setup(),
     execute_erl:setup(),
+    execute_k:setup(),
     Results = case parser_main_arguments(Args) of
         {runRandTests, NoT} -> random_test(NoT);
         {runUnitTests, LoT} -> unit_test(LoT);
@@ -148,6 +150,7 @@ main(Args) ->
     end,
     summary(Results),
     if ?TRACING -> execute_coq:report(),
-                   execute_erl:report();
+                   execute_erl:report(),
+                   execute_k:report();
        true     -> io:format("Coverage data is not measured!")
     end.
