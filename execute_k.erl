@@ -1,16 +1,20 @@
 -module(execute_k).
 
--export([execute/3]).
+-export([execute/4]).
 
 -define(KDIR, "erlang-semantics/erl_env").
+-define(TRACED_KDIR, "erlang-semantics/erl_env_traced").
 
-execute(BaseName, ModuleName, ReportDirectory) ->
+execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     
     %% krun --config-var Exp="module:main(.Exps)" module.erl
+    KDir = if Tracing -> ?TRACED_KDIR;
+              true    -> ?KDIR
+           end,
     case
         exec:shell_exec(
             io_lib:format("krun -d ~s --config-var Exp=\"~s:main(.Exps)\" ~s", [
-               ?KDIR,
+               KDir,
                ModuleName,
                BaseName ++ ".erl"
            ])

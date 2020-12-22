@@ -32,26 +32,42 @@ report(Test, ReportDirectory, Result, Success) ->
        true  -> io:format(".")
     end.
 
-compare_results([{Ok, Head} | Tail]) ->
-    lists:all(fun(Elem) ->
-                 case Elem of
-                   {Ok, {Result, _, _}} -> Result == Head;
-                   {Ok, Result}         -> Result == Head;
-                   _                    -> io:format("Illegal result format!~n"), 
-                                           false
-                 end
-                   end, Tail);
+compare_results({ErlResult, CoqResult, KResult}) ->
+    case ErlResult of
+        {ok, ErlVal} -> begin
+                            case CoqResult of
+                                {ok, {CoqVal, _, _}} -> CoqVal == ErlVal;
+                                {ok, CoqVal}         -> CoqVal == ErlVal;
+                                _                    -> io:format("Coq failed!"), false
+                            end and
+                            case KResult of
+                                {ok, {KVal, _}} -> KVal == ErlVal;
+                                {ok, KVal}      -> KVal == ErlVal;
+                                _               -> false
+                            end
+                        end;
+        _            -> io:format("Erlang failed!"), false
+    end;
+
+% lists:all(fun(Elem) ->
+    %              case Elem of
+    %                {Ok, {Result, _, _}} -> Result == Head;
+    %                {Ok, Result}         -> Result == Head;
+    %                _                    -> io:format("Illegal result format!~n"), 
+    %                                        false
+    %              end
+    %                end, Tail);
 compare_results(_) -> io:format("Illegal result format!~n"), false.
 
 -spec test_case(string(), string()) -> bool().
 test_case(Test, ReportDirectory) ->
     Basename = misc:remove_extension(Test),
     ModuleName = misc:remove_directory(Basename),
-    Result = [
+    Result = {
         execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory, ?TRACING)
-        %execute_k:execute(Basename, ModuleName, ReportDirectory)
-    ],
+        execute_coq:execute(Basename, ModuleName, ReportDirectory, ?TRACING),
+        execute_k:execute(Basename, ModuleName, ReportDirectory, ?TRACING)
+    },
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
     if 
