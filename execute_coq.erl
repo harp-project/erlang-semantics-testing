@@ -74,8 +74,6 @@ setup() ->
     put(?COQ_RULE_LOC, misc:init_stat_map(semantic_rules())),
     put(?COQ_BIF_LOC, misc:init_stat_map(bifs())).
 
-%% CAUTION: Uses the fact, that the Coq result is the second one in the list
-%% returns #{...}
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]

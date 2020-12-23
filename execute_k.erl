@@ -42,7 +42,23 @@ get_k_result_from_string(Output) ->
                          [Head | _] -> 
                                begin
                                   ToParse = lists:flatten(string:replace(Head, ".Exps", "")),
-			  				                  {ok, misc:parse(ToParse)}
+			  				                  %io:format("~n~n~p~n~n", [ToParse]),
+                                  try
+                                    {ok, misc:parse(ToParse)}
+                                  catch
+                                    _:_ -> case string:find(ToParse, "badmatch") of
+                                             nomatch -> 
+                                               case string:find(ToParse, "badarith") of
+                                                 nomatch -> 
+                                                   case string:find(ToParse, "badarg") of
+                                                     nomatch -> {error, "Illegal K result format: ~n" ++ Output};
+                                                     _ -> {ok, badarg}
+                                                   end;
+                                                 _ -> {ok, badarith}
+                                               end;
+                                             _       -> {ok, badmatch}
+                                           end
+                                  end
                                end;
                          _          -> {error, "Illegal K result format: ~n" ++ Output}
                       end;
@@ -76,12 +92,11 @@ get_k_trace(Output) ->
       _              -> #{}
     end
     catch
-    _:_ -> io:format("~n~nK coverage:~nasdasdasdasdasdasdn~n"), #{}
+    _:_ -> io:format("~nInvalid K trace format! The trace for this execution will not be logged!~n"), #{}
     end
 .
 
-semantic_rules() -> ["lookup_var", "lookup_fun", "restore_env", "restore_all", "count", "parseVar", "fv", "fvs", "module", "fundefs", "modules", "export", "import", 
-                     "module_init", "module_attr_init", "attr_init", "fundefs_init", "is_atom", "is_boolean", "is_integer", "is_number", "hd", "tl", "element", "setelement", 
+semantic_rules() -> ["lookup_var", "lookup_fun", "is_atom", "is_boolean", "is_integer", "is_number", "hd", "tl", "element", "setelement", 
                      "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard", "matches_guard_heat", 
                      "matches_guard_cool", "matches_fun", "mult", "div", "div_ex", "rem", "rem_ex", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "or_ex", "eq", "neq", 
                      "and", "and_ex", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var", "mfa_call", "fa_import_call", 
@@ -91,8 +106,6 @@ setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
     put(?K_RULE_LOC, misc:init_stat_map(semantic_rules())).
 
-%% CAUTION: Uses the fact, that the Coq result is the second one in the list
-%% returns #{...}
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]

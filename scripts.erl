@@ -27,7 +27,7 @@ mktmpdir() ->
 report(Test, ReportDirectory, Result, Success) ->
     misc:write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
-       false -> io:format("~n ~s failed ~p~n", [Test, Result]),
+       false -> %io:format("~n ~s failed ~p~n", [Test, Result]),
                 io:format("X");
        true  -> io:format(".")
     end.
@@ -48,18 +48,9 @@ compare_results({ErlResult, CoqResult, KResult}) ->
                         end;
         _            -> io:format("Erlang failed!"), false
     end;
-
-% lists:all(fun(Elem) ->
-    %              case Elem of
-    %                {Ok, {Result, _, _}} -> Result == Head;
-    %                {Ok, Result}         -> Result == Head;
-    %                _                    -> io:format("Illegal result format!~n"), 
-    %                                        false
-    %              end
-    %                end, Tail);
 compare_results(_) -> io:format("Illegal result format!~n"), false.
 
--spec test_case(string(), string()) -> bool().
+-spec test_case(string(), string()) -> boolean().
 test_case(Test, ReportDirectory) ->
     Basename = misc:remove_extension(Test),
     ModuleName = misc:remove_directory(Basename),
@@ -96,7 +87,7 @@ is_compilable(T) ->
 random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
-    random:seed(erlang:now()),
+    random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
     G = resize(20, erlgen:module(?ModuleNamePlaceHolder, 20)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
@@ -139,18 +130,25 @@ parser_main_arguments(Args) when is_list(Args), length(Args) > 0 ->
 parser_main_arguments(_) ->
     help.
 
-main(Args) ->
+setup() ->
     execute_coq:setup(),
     execute_erl:setup(),
-    execute_k:setup(),
+    execute_k:setup().
+
+report() ->
+    if ?TRACING -> execute_coq:report(),
+                   execute_erl:report(),
+                   execute_k:report();
+       true     -> io:format("Coverage data is not measured!")
+    end.
+
+
+main(Args) ->
+    setup(),
     Results = case parser_main_arguments(Args) of
         {runRandTests, NoT} -> random_test(NoT);
         {runUnitTests, LoT} -> unit_test(LoT);
         _                   -> help
     end,
     summary(Results),
-    if ?TRACING -> execute_coq:report(),
-                   execute_erl:report(),
-                   execute_k:report();
-       true     -> io:format("Coverage data is not measured!")
-    end.
+    report().
