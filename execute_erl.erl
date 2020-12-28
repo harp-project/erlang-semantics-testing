@@ -57,7 +57,7 @@ setup() ->
 generators() ->
     [function, funclause, pattern, statement, match_expr, application, io_statement, boolean_literal, 
      integer_literal, atom_literal, list_expr, list_comp, generator, tuple_expr, atom_expr, boolean_expr, integer_expr, 
-     bound_var, unbound_var, case_expr, case_clause]. % last_funclause, last_caseclause
+     unbound_var, case_expr, case_clause]. % last_funclause, last_caseclause
 
 report() ->
     misc:hline(),
