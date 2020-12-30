@@ -97,10 +97,10 @@ get_k_trace(Output) ->
 .
 
 semantic_rules() -> ["lookup_var", "lookup_fun", "is_atom", "is_boolean", "is_integer", "is_number", "hd", "tl", "element", "setelement", 
-                     "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard", "matches_guard_heat", 
-                     "matches_guard_cool", "matches_fun", "mult", "div", "div_ex", "rem", "rem_ex", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "or_ex", "eq", "neq", 
+                     "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard",
+                     "matches_fun", "mult", "div", "div_ex", "rem", "rem_ex", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "or_ex", "eq", "neq", 
                      "and", "and_ex", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var", "mfa_call", "fa_import_call", 
-                     "fa_local_call", "if", "case", "match", "begin_end", "andalso_ex", "orelse_ex", "not_ex"].
+                     "fa_local_call", "if", "case", "match", "begin_end", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"].
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
