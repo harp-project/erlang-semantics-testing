@@ -46,8 +46,12 @@ parse_coq_result(Output) ->
                  [_ | [Tail]] ->
                       ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
                       case misc:parse(ToParse) of
-                         {{_, Reason, _}, RuleTrace, BIFTrace} -> {ok, {Reason, RuleTrace, BIFTrace}};
-                         {_, Reason, _}                        -> {ok, Reason}
+                        % If there are details beside the reason
+                         {{_, {Reason, _}, _}, RuleTrace, BIFTrace} -> {ok, {Reason, RuleTrace, BIFTrace}};
+                         {_, {Reason, _}, _}                        -> {ok, Reason};
+                        % If there are no details
+                         {{_, Reason, _}, RuleTrace, BIFTrace}      -> {ok, {Reason, RuleTrace, BIFTrace}};
+                         {_, Reason, _}                             -> {ok, Reason}
                       end;
                  _ -> %% Something else was the result
                     io:format("Cannot parse: ~p~n", [Output]),
@@ -118,7 +122,8 @@ semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ a
 %% All modeled BIFs
 bifs() -> ['+','-','*','/','rem','div','fwrite','fread','and','or','not',
            '==','=:=','/=','=/=','++','--','tuple_to_list','list_to_tuple'
-           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement','undef'].
+           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement','undef',
+           'is_atom', 'is_integer', 'is_boolean', 'is_number'].
 
 report() ->
   %% Rule coverage map:

@@ -31,7 +31,11 @@ execute(Test, ModuleName, ReportDirectory) ->
                     try
                       %% select the exception reason from the output string
                       ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
-                      {ok, list_to_atom(ToParse)}
+                    % If there are details beside the reason  
+                    if hd(ToParse) == ${ -> {ok, list_to_atom(tl(ToParse))};
+                    % If there are no details beside the reason
+                       true              -> {ok, list_to_atom(ToParse)}
+                      end
                     catch
                       _ -> {error,
                               io_lib:format(
