@@ -27,7 +27,7 @@ mktmpdir() ->
 report(Test, ReportDirectory, Result, Success) ->
     misc:write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
-       false -> %io:format("~n ~s failed ~p~n", [Test, Result]),
+       false -> io:format("~n ~s failed~n", [Test]),
                 io:format("X");
        true  -> io:format(".")
     end.
@@ -36,17 +36,17 @@ compare_results({ErlResult, CoqResult, KResult}) ->
     case ErlResult of
         {ok, ErlVal} -> begin
                             case CoqResult of
-                                {ok, {CoqVal, _, _}} -> CoqVal == ErlVal;
-                                {ok, CoqVal}         -> CoqVal == ErlVal;
-                                _                    -> io:format("Coq failed!"), false
+                                {ok, CoqVal, _, _} -> CoqVal == ErlVal;
+                                {ok, CoqVal}       -> CoqVal == ErlVal;
+                                _                  -> false
                             end and
                             case KResult of
-                                {ok, {KVal, _}} -> KVal == ErlVal;
-                                {ok, KVal}      -> KVal == ErlVal;
-                                _               -> false
+                                {ok, KVal, _} -> KVal == ErlVal;
+                                {ok, KVal}    -> KVal == ErlVal;
+                                _             -> false
                             end
                         end;
-        _            -> io:format("Erlang failed!"), false
+        _            -> false
     end;
 compare_results(_) -> io:format("Illegal result format!~n"), false.
 
@@ -120,7 +120,7 @@ summary(nosummary) ->
 summary(Results) ->
     Cnt = length(Results),
     OK = length([X || X <- Results, X == true]),
-    io:format("All ~p Passed ~p Failed ~p~n", [Cnt, OK, Cnt-OK]).
+    io:format("~nAll ~p Passed ~p Failed ~p~n", [Cnt, OK, Cnt-OK]).
 
 parser_main_arguments(Args) when is_list(Args), length(Args) > 0 ->
     case Args of
@@ -139,7 +139,7 @@ report() ->
     if ?TRACING -> execute_coq:report(),
                    execute_erl:report(),
                    execute_k:report();
-       true     -> io:format("Coverage data is not measured!")
+       true     -> io:format("~nCoverage data is not measured!~n")
     end.
 
 

@@ -27,16 +27,19 @@ compile_coq(BaseName, ReportDirectory) ->
             -1
     end.
 
-parse_coq_result(Output) when is_integer(Output) ->
-    io:format("coq result should be string~n"),
-    {error, "Expected string"};
-parse_coq_result(Output) ->
+% parse_coq_result(Output, Tracing) when is_integer(Output) ->
+%    io:format("coq result should be string~n"),
+%    {error, "Expected string"};
+parse_coq_result(Output, Tracing) ->
   case string:split(Output, "__coqresult:", leading) of
         [_ | [Tail]] ->
           %% -----------------------------------------
           %% Coq result is a correct value
-            ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-            {ok, misc:parse(ToParse)};
+            ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
+            if Tracing -> [Result, Trace, BIFTrace] = string:split(ToParse, "%", all),
+                          {ok, misc:parse(Result), misc:parse(Trace), misc:parse(BIFTrace)};
+               true    -> {ok, misc:parse(ToParse)}
+            end;
           %% -----------------------------------------
         _ ->
           %% -----------------------------------------
@@ -44,14 +47,19 @@ parse_coq_result(Output) ->
             case string:split(Output, "__exceptioncoqresult:", leading) of
                %% Get the reason of the exception, which will be compared to the Erlang exception reason
                  [_ | [Tail]] ->
-                      ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-                      case misc:parse(ToParse) of
+                      ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
+                      Result = 
+                        if Tracing -> [Exception, T, BIFT] = string:split(ToParse, "%", all),
+                                      {ok, misc:parse(Exception), misc:parse(T), misc:parse(BIFT)};
+                           true    -> {ok, misc:parse(ToParse)}
+                        end,
+                      case Result of
                         % If there are details beside the reason
-                         {{_, {Reason, _}, _}, RuleTrace, BIFTrace} -> {ok, {Reason, RuleTrace, BIFTrace}};
-                         {_, {Reason, _}, _}                        -> {ok, Reason};
+                         {_, {_, Reason, _}, RuleTrace, BIFTrace} -> {ok, Reason, RuleTrace, BIFTrace};
+                         {_, {_, Reason, _}}                      -> {ok, Reason}
                         % If there are no details
-                         {{_, Reason, _}, RuleTrace, BIFTrace}      -> {ok, {Reason, RuleTrace, BIFTrace}};
-                         {_, Reason, _}                             -> {ok, Reason}
+                        % {{_, Reason, _}, RuleTrace, BIFTrace}      -> {ok, Reason, RuleTrace, BIFTrace};
+                        % {_, {_, Reason, _}                             -> {ok, Reason}
                       end;
                  _ -> %% Something else was the result
                     io:format("Cannot parse: ~p~n", [Output]),
@@ -67,7 +75,7 @@ convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
 execute(TestPath, BaseName, ReportDirectory, Tracing) ->
     convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),
     Output = compile_coq(BaseName, ReportDirectory),
-    parse_coq_result(Output).
+    parse_coq_result(Output, Tracing).
 
 
 %% ---------------------------------------------------------------------
@@ -81,8 +89,8 @@ setup() ->
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
-    {_ ,{_, RuleTrace, BIFTrace}} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
-                                     misc:process_trace(BIFTrace, ?COQ_BIF_LOC);
+    {_, _, RuleTrace, BIFTrace} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
+                                   misc:process_trace(BIFTrace, ?COQ_BIF_LOC);
     _                             -> #{}
   end.
 
@@ -107,7 +115,7 @@ map_rules() -> ['_MAP', '_MAP_EX'].
 letrec_rule() -> ['_LETREC'].
 exp_list_rules() -> ['_VALUES'].
 single_rule() -> ['_SINGLE'].
-error_rules() ->  ['_FAIL', '_TIMEOUT'].
+% error_rules() ->  ['_FAIL', '_TIMEOUT'].
 
 %% Semantics rules not including exceptional evaluation
 exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH',
@@ -116,7 +124,7 @@ exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_
 
 %% All semantics rules
 semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ apply_rules() ++ list_rules() ++ call_rules() ++
-                    primop_rules() ++ try_rules() ++ variable_rule() ++ funid_rule() ++ literal_rule() ++ fun_rule() ++ error_rules() ++
+                    primop_rules() ++ try_rules() ++ variable_rule() ++ funid_rule() ++ literal_rule() ++ fun_rule() ++ % error_rules() ++
                     tuple_rules() ++ let_rules() ++ seq_rules() ++ map_rules() ++ letrec_rule() ++ exp_list_rules() ++ single_rule().
 
 %% All modeled BIFs

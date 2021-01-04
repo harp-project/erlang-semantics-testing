@@ -26,7 +26,7 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
             FileName = ReportDirectory ++ ModuleName ++ ".kresult",
 		        misc:write_to_file(FileName, Output),
             {St, Res} = get_k_result_from_string(Output),
-            if Tracing -> {St, {Res, get_k_trace(Output)}};
+            if Tracing -> {St, Res, get_k_trace(Output)};
                true    -> {St, Res}
             end;
         _ ->
@@ -34,6 +34,13 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
             -1
     end.
 
+exceptions() -> ["%badmatch", "%badarity", "%badarith", "%badarg", "%badfun", "%undef"].
+
+find_exception(Str, Elem) ->
+  case string:find(Str, Elem) of
+    nomatch -> false;
+    _       -> true
+  end.
 
 get_k_result_from_string(Output) ->
   try 
@@ -46,17 +53,9 @@ get_k_result_from_string(Output) ->
                                   try
                                     {ok, misc:parse(ToParse)}
                                   catch
-                                    _:_ -> case string:find(ToParse, "%badmatch") of
-                                             nomatch -> 
-                                               case string:find(ToParse, "%badarith") of
-                                                 nomatch -> 
-                                                   case string:find(ToParse, "%badarg") of
-                                                     nomatch -> {error, "Illegal K result format: ~n" ++ Output};
-                                                     _ -> {ok, badarg}
-                                                   end;
-                                                 _ -> {ok, badarith}
-                                               end;
-                                             _       -> {ok, badmatch}
+                                    _:_ -> case lists:search(fun(Elem) -> find_exception(ToParse, Elem) end, exceptions()) of
+                                             {_, Exc} -> {ok, list_to_atom(tl(Exc))};
+                                             false    -> {error, "Illegal K result format: ~n" ++ Output}
                                            end
                                   end
                                end;
@@ -96,11 +95,14 @@ get_k_trace(Output) ->
     end
 .
 
-semantic_rules() -> ["lookup_var", "lookup_fun", "is_atom", "is_boolean", "is_integer", "is_number", "hd", "tl", "element", "setelement", 
+semantic_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", "is_integer", "is_number", 
+                     "hd", "tl", "element", "setelement", 
                      "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard",
                      "matches_fun", "mult", "div", "div_ex", "rem", "rem_ex", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "or_ex", "eq", "neq", 
-                     "and", "and_ex", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var", "mfa_call", "fa_import_call", 
-                     "fa_local_call", "if", "case", "match", "begin_end", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"].
+                     "and", "and_ex", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var", 
+                     %"mfa_call", "fa_import_call", 
+                     "fa_local_call", "fa_call_undef", "fa_call_badfun",
+                     "if", "case", "match", "begin_end", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"].
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
@@ -109,7 +111,7 @@ setup() ->
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
-    {_ ,{_, RuleTrace}} -> misc:process_trace(RuleTrace, ?K_RULE_LOC);
+    {_ ,_, RuleTrace} -> misc:process_trace(RuleTrace, ?K_RULE_LOC);
     _                   -> #{}
   end.
 
