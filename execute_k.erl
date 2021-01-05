@@ -95,14 +95,18 @@ get_k_trace(Output) ->
     end
 .
 
-semantic_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", "is_integer", "is_number", 
-                     "hd", "tl", "element", "setelement", 
-                     "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard",
-                     "matches_fun", "mult", "div", "div_ex", "rem", "rem_ex", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "or_ex", "eq", "neq", 
-                     "and", "and_ex", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var", 
-                     %"mfa_call", "fa_import_call", 
-                     "fa_local_call", "fa_call_undef", "fa_call_badfun",
-                     "if", "case", "match", "begin_end", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"].
+semantic_rules() -> exceptionfree_rules() ++ exceptional_rules().
+
+exceptionfree_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", "is_integer", "is_number", 
+                          "hd", "tl", "element", "setelement", 
+                          "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard",
+                          "matches_fun", "mult", "div", "rem", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "eq", "neq", 
+                          "and", "andalso", "orelse", "not", "app", "diff", "listcomp", "implicit_call", "recursive_call", "anon_call", "anon_call_var",
+                          %"mfa_call", "fa_import_call",
+                          "fa_local_call", 
+                          "if", "case", "match", "begin_end"].
+
+exceptional_rules() -> ["div_ex", "rem_ex", "or_ex", "and_ex", "anon_call_badarity", "fa_call_badfun", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"]. % "fa_call_badarity", "fa_call_undef", 
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
@@ -125,6 +129,11 @@ report() ->
     misc:hline(),
     io:format("K coverage data:~n"),
     io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(Semantics_rules)) * 100]),
+
+    ExcFreeRules = exceptionfree_rules(),
+    UsedExceptionFreeRulesNr = maps:size(maps:filter(fun(K, V) -> lists:member(K, ExcFreeRules) and (V > 0) end, RuleCoverage)),
+    io:format("Rule coverage without exceptions: ~p %~n", [(UsedExceptionFreeRulesNr / length(ExcFreeRules)) * 100]),
+    
     misc:report_coverage_to_csv(RuleCoverage, ?K_FILENAME),
     misc:hline()
   .

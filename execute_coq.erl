@@ -128,10 +128,11 @@ semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ a
                     tuple_rules() ++ let_rules() ++ seq_rules() ++ map_rules() ++ letrec_rule() ++ exp_list_rules() ++ single_rule().
 
 %% All modeled BIFs
-bifs() -> ['+','-','*','/','rem','div','fwrite','fread','and','or','not',
-           '==','=:=','/=','=/=','++','--','tuple_to_list','list_to_tuple'
-           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement','undef',
-           'is_atom', 'is_integer', 'is_boolean', 'is_number'].
+bifs() -> ['+','-','*','rem','div', 'and','or','not',
+           '==','/=','++','--','tuple_to_list','list_to_tuple'
+           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement'
+           % 'is_atom', 'is_integer', 'is_boolean', 'is_number', fwrite','fread','undef', '=:=', '=/=', '/',
+           ].
 
 report() ->
   %% Rule coverage map:

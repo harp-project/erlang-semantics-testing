@@ -52,9 +52,15 @@ init_stat_map(List) ->
 hline() ->
     io:format("------------------------------------------------------------------------~n").
 
+update_map(K, V, Acc) ->
+    case maps:is_key(K, Acc) of
+       true  -> maps:update_with(K, fun(X) -> X + V end, Acc);
+       false -> Acc
+    end.
+
 process_trace(Trace, Loc) ->
   ReportMap = get(Loc),
   UpdatedReportMap = maps:fold(fun(K, V, Acc) ->
-                                      maps:update_with(K, fun(X) -> X + V end, Acc)
+                                      update_map(K, V, Acc)
                                  end, ReportMap, Trace),
   put(Loc, UpdatedReportMap).
