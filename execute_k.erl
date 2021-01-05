@@ -109,7 +109,8 @@ exceptionfree_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", 
                           "fa_local_call", 
                           "if", "case", "match", "begin_end"].
 
-exceptional_rules() -> ["div_ex", "rem_ex", "or_ex", "and_ex", "anon_call_badarity", "fa_call_badfun", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "diff_ex"]. % "fa_call_badarity", "fa_call_undef", 
+exceptional_rules() -> ["div_ex", "rem_ex", "or_ex", "and_ex", "anon_call_badarity", "fa_call_badfun", "andalso_ex", "orelse_ex", "not_ex", "app_ex", 
+                        "diff_ex", "hd_ex", "tl_ex", "element_ex", "setelement_ex", "tuple_size_ex", "list_to_tuple_ex", "tuple_to_list_ex", "length_ex"]. % "fa_call_badarity", "fa_call_undef", 
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
