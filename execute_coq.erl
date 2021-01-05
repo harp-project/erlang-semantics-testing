@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/4, setup/0, report/0, update_coverage/1]).
+-export([execute/5, setup/0, report/0, update_coverage/1]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 -define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
@@ -71,6 +71,10 @@ parse_coq_result(Output, Tracing) ->
 
 convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
     misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, Tracing)).
+
+% wrapper
+execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
+  PID ! {execute(TestPath, BaseName, ReportDirectory, Tracing), coq_res}.
 
 execute(TestPath, BaseName, ReportDirectory, Tracing) ->
     convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),

@@ -1,11 +1,15 @@
 -module(execute_k).
 
--export([execute/4, setup/0, report/0, update_coverage/1]).
+-export([execute/5, setup/0, report/0, update_coverage/1]).
 
 -define(KDIR, "erlang-semantics/erl_env").
 -define(TRACED_KDIR, "erlang-semantics/erl_env_traced").
 -define(K_FILENAME, "./reports/k_coverage.csv").
 -define(K_RULE_LOC, k_rule_coverage_map).
+
+% wrapper
+execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
+  PID ! {execute(TestPath, BaseName, ReportDirectory, Tracing), k_res}.
 
 execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     
@@ -30,8 +34,7 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
                true    -> {St, Res}
             end;
         _ ->
-            io:format("Error running krun~n"),
-            -1
+            {error, "Krun failed!"}
     end.
 
 exceptions() -> ["%badmatch", "%badarity", "%badarith", "%badarg", "%badfun", "%undef"].
@@ -133,7 +136,7 @@ report() ->
     ExcFreeRules = exceptionfree_rules(),
     UsedExceptionFreeRulesNr = maps:size(maps:filter(fun(K, V) -> lists:member(K, ExcFreeRules) and (V > 0) end, RuleCoverage)),
     io:format("Rule coverage without exceptions: ~p %~n", [(UsedExceptionFreeRulesNr / length(ExcFreeRules)) * 100]),
-    
+
     misc:report_coverage_to_csv(RuleCoverage, ?K_FILENAME),
     misc:hline()
   .

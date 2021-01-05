@@ -52,13 +52,26 @@ compare_results(_) -> io:format("Illegal result format!~n"), false.
 
 -spec test_case(string(), string()) -> boolean().
 test_case(Test, ReportDirectory) ->
-    Basename = misc:remove_extension(Test),
-    ModuleName = misc:remove_directory(Basename),
+    BaseName = misc:remove_extension(Test),
+    ModuleName = misc:remove_directory(BaseName),
+    spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, self()]),
+    spawn(execute_coq, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    spawn(execute_k  , execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
     Result = {
-        execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory, ?TRACING),
-        execute_k:execute(Basename, ModuleName, ReportDirectory, ?TRACING)
-    },
+    receive
+        {ErlResult, erl_res} -> ErlResult
+    end,
+    receive
+        {CoqResult, coq_res}    -> CoqResult
+    end,
+    receive
+        {KResult, k_res}        -> KResult
+    end},
+    % Result = {
+    %     execute_erl:execute(BaseName, ModuleName, ReportDirectory),
+    %     execute_coq:execute(BaseName, ModuleName, ReportDirectory, ?TRACING),
+    %     execute_k:execute(BaseName, ModuleName, ReportDirectory, ?TRACING)
+    % },
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
     if 
