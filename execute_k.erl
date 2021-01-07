@@ -51,8 +51,8 @@ get_k_result_from_string(Output) ->
       [_ | [Tail]] -> case string:split(Tail, "</k>", leading) of
                          [Head | _] -> 
                                begin
-                                  ToParse = lists:flatten(string:replace(Head, ".Exps", "")),
-			  				                  %io:format("~n~n~p~n~n", [ToParse]),
+                                  ToParse = lists:flatten(string:replace(Head, ".Exps", "", all)),
+			  				                  io:format("~n~n~p~n~n~p~n", [Head, ToParse]),
                                   try
                                     {ok, misc:parse(ToParse)}
                                   catch
