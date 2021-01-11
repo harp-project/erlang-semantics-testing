@@ -11,7 +11,10 @@
 %% OPTIONS
 
 -define(REPORT_DIRECTORY, "./reports/").
--define(SHRINKING, false).
+-define(SHRINKING, true).
+-define(TRACING, false).
+-define(GEN_REC_LIMIT, 20).
+-define(GEN_SIZE, 20).
 
 %% ---------------------------------------------------------------------
 
@@ -26,34 +29,63 @@ mktmpdir() ->
 report(Test, ReportDirectory, Result, Success) ->
     misc:write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
-       false -> io:format("~n ~s failed ~p~n", [Test, Result]),
+       false -> io:format("~n ~s failed~n", [Test]),
                 io:format("X");
        true  -> io:format(".")
     end.
 
-compare_results([{Ok, Head} | Tail]) ->
-    lists:all(fun(Elem) ->
-                 case Elem of
-                   {Ok, {Result, _}} -> Result == Head;
-                   {Ok, Result}      -> Result == Head;
-                   _                 -> io:format("Illegal result format!~n"), 
-                                        false
-                 end
-                   end, Tail);
+compare_results({ErlResult, CoqResult, KResult}) ->
+    case ErlResult of
+        {ok, ErlVal} -> begin
+                            case CoqResult of
+                                {ok, CoqVal, _, _} -> CoqVal == ErlVal;
+                                {ok, CoqVal}       -> CoqVal == ErlVal;
+                                _                  -> false
+                            end and
+                            case KResult of
+                                {ok, KVal, _} -> KVal == ErlVal;
+                                {_ , KVal}    -> KVal == ErlVal orelse
+                                                 case is_list(KVal) of
+                                                    % In case of parsing ambiguity (potential internal bug in K 3.6):
+                                                     true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
+                                                     false -> false
+                                                 end;
+                                _             -> false
+                            end
+                        end;
+        _            -> false
+    end;
 compare_results(_) -> io:format("Illegal result format!~n"), false.
 
--spec test_case(string(), string()) -> bool().
+-spec test_case(string(), string()) -> boolean().
 test_case(Test, ReportDirectory) ->
-    Basename = misc:remove_extension(Test),
-    ModuleName = misc:remove_directory(Basename),
-    Result = [
-        execute_erl:execute(Basename, ModuleName, ReportDirectory),
-        execute_coq:execute(Basename, ModuleName, ReportDirectory)
-        % execute_k:execute(Basename, ModuleName, ReportDirectory)
-    ],
+    BaseName = misc:remove_extension(Test),
+    ModuleName = misc:remove_directory(BaseName),
+    spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, self()]),
+    spawn(execute_coq, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    spawn(execute_k  , execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    Result = {
+    receive
+        {ErlResult, erl_res} -> ErlResult
+    end,
+    receive
+        {CoqResult, coq_res}    -> CoqResult
+    end,
+    receive
+        {KResult, k_res}        -> KResult
+    end},
+    % Result = {
+    %     execute_erl:execute(BaseName, ModuleName, ReportDirectory),
+    %     execute_coq:execute(BaseName, ModuleName, ReportDirectory, ?TRACING),
+    %     execute_k:execute(BaseName, ModuleName, ReportDirectory, ?TRACING)
+    % },
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
-    execute_coq:update_coverage(Result),
+    if 
+      ?TRACING -> execute_coq:update_coverage(element(2,Result)),
+                  execute_k:update_coverage(element(3,Result));
+      true     -> ok % do nothing
+    end,
     Success.
 
 %% ---------------------------------------------------------------------
@@ -69,14 +101,14 @@ unit_test(Tests) when is_list(Tests) ->
 is_compilable(T) ->
     S = [erl_syntax:revert(T2) || T2 <- erl_syntax:form_list_elements(eval(T))],
     C = compile:forms(S, [strong_validation, return_errors, nowarn_unused_vars]),
-    element(1, C) /= ok andalso io:format("\nnem fordul:(\n"),
+    element(1, C) /= ok andalso io:format("~nGenerated file cannot be compiled :(~n~p~n", [C]),
     element(1, C) == ok.
 
 random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
-    random:seed(erlang:now()),
-    G = resize(20, erlgen:module(?ModuleNamePlaceHolder, 20)),
+    random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
+    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
                         false -> []
@@ -108,7 +140,7 @@ summary(nosummary) ->
 summary(Results) ->
     Cnt = length(Results),
     OK = length([X || X <- Results, X == true]),
-    io:format("All ~p Passed ~p Failed ~p~n", [Cnt, OK, Cnt-OK]).
+    io:format("~nAll ~p Passed ~p Failed ~p~n", [Cnt, OK, Cnt-OK]).
 
 parser_main_arguments(Args) when is_list(Args), length(Args) > 0 ->
     case Args of
@@ -118,12 +150,25 @@ parser_main_arguments(Args) when is_list(Args), length(Args) > 0 ->
 parser_main_arguments(_) ->
     help.
 
-main(Args) ->
+setup() ->
     execute_coq:setup(),
+    execute_erl:setup(),
+    execute_k:setup().
+
+report() ->
+    if ?TRACING -> execute_coq:report(),
+                   execute_erl:report(),
+                   execute_k:report();
+       true     -> io:format("~nCoverage data is not measured!~n")
+    end.
+
+
+main(Args) ->
+    setup(),
     Results = case parser_main_arguments(Args) of
         {runRandTests, NoT} -> random_test(NoT);
         {runUnitTests, LoT} -> unit_test(LoT);
         _                   -> help
     end,
     summary(Results),
-    execute_coq:report().
+    report().

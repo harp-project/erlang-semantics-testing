@@ -1,16 +1,21 @@
 -module(execute_coq).
 
--export([execute/3, setup/0, report/0, update_coverage/1]).
+-export([execute/5, setup/0, report/0, update_coverage/1]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
+-define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
 -define(COQDIR, "Core-Erlang-Formalization/src").
+-define(COQRELPATH, "Core_Erlang").
+-define(COQ_RULE_LOC, coq_rule_coverage_map).
+-define(COQ_BIF_LOC, coq_bif_coverage_map).
 
 compile_coq(BaseName, ReportDirectory) ->
     %coqc -Q $COQDIR "" "tmp$num.v"
     case
         exec:shell_exec(
-            io_lib:format("coqc -Q \"~s\" \"\" \"~s\"", [
+            io_lib:format("coqc -Q \"~s\" \"~s\" \"~s\"", [
                 ?COQDIR,
+                ?COQRELPATH,
                 ReportDirectory ++ BaseName ++ ".v"
             ])
         )
@@ -22,16 +27,19 @@ compile_coq(BaseName, ReportDirectory) ->
             -1
     end.
 
-parse_coq_result(Output) when is_integer(Output) ->
-    io:format("coq result should be string~n"),
-    {error, "Expected string"};
-parse_coq_result(Output) ->
-    case string:split(Output, "__coqresult:", leading) of
+% parse_coq_result(Output, Tracing) when is_integer(Output) ->
+%    io:format("coq result should be string~n"),
+%    {error, "Expected string"};
+parse_coq_result(Output, Tracing) ->
+  case string:split(Output, "__coqresult:", leading) of
         [_ | [Tail]] ->
           %% -----------------------------------------
           %% Coq result is a correct value
-            ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-            {ok, misc:parse(ToParse)};
+            ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
+            if Tracing -> [Result, Trace, BIFTrace] = string:split(ToParse, "%", all),
+                          {ok, misc:parse(Result), misc:parse(Trace), misc:parse(BIFTrace)};
+               true    -> {ok, misc:parse(ToParse)}
+            end;
           %% -----------------------------------------
         _ ->
           %% -----------------------------------------
@@ -39,9 +47,20 @@ parse_coq_result(Output) ->
             case string:split(Output, "__exceptioncoqresult:", leading) of
                %% Get the reason of the exception, which will be compared to the Erlang exception reason
                  [_ | [Tail]] ->
-                      ToParse = lists:reverse(tl(lists:dropwhile(fun(X) -> X /= $" end, lists:reverse(Tail)))),
-                      {{_, Reason, _}, Trace} = misc:parse(ToParse),
-                      {ok, {Reason, Trace}};
+                      ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
+                      Result = 
+                        if Tracing -> [Exception, T, BIFT] = string:split(ToParse, "%", all),
+                                      {ok, misc:parse(Exception), misc:parse(T), misc:parse(BIFT)};
+                           true    -> {ok, misc:parse(ToParse)}
+                        end,
+                      case Result of
+                        % If there are details beside the reason
+                         {_, {_, Reason, _}, RuleTrace, BIFTrace} -> {ok, Reason, RuleTrace, BIFTrace};
+                         {_, {_, Reason, _}}                      -> {ok, Reason}
+                        % If there are no details
+                        % {{_, Reason, _}, RuleTrace, BIFTrace}      -> {ok, Reason, RuleTrace, BIFTrace};
+                        % {_, {_, Reason, _}                             -> {ok, Reason}
+                      end;
                  _ -> %% Something else was the result
                     io:format("Cannot parse: ~p~n", [Output]),
                     {error, "Cannot parse"}
@@ -50,13 +69,17 @@ parse_coq_result(Output) ->
     end
     .
 
-convert_erl_to_coq(TestPath, BaseName, ReportDirectory) ->
-    misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, true)).
+convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
+    misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, Tracing)).
 
-execute(TestPath, BaseName, ReportDirectory) ->
-    convert_erl_to_coq(TestPath, BaseName, ReportDirectory),
+% wrapper
+execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
+  PID ! {execute(TestPath, BaseName, ReportDirectory, Tracing), coq_res}.
+
+execute(TestPath, BaseName, ReportDirectory, Tracing) ->
+    convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),
     Output = compile_coq(BaseName, ReportDirectory),
-    parse_coq_result(Output).
+    parse_coq_result(Output, Tracing).
 
 
 %% ---------------------------------------------------------------------
@@ -64,29 +87,16 @@ execute(TestPath, BaseName, ReportDirectory) ->
 
 setup() ->
   %% Initialize with the Coq coverage map, where all rules were used 0 times:
-    put(coq_coverage_map, default_map()).
+    put(?COQ_RULE_LOC, misc:init_stat_map(semantic_rules())),
+    put(?COQ_BIF_LOC, misc:init_stat_map(bifs())).
 
-%% CAUTION: Uses the fact, that the Coq result is the second one in the list
-%% returns #{...}
 update_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
-    [_, {_, {_, CoqTrace}} | _] -> process_trace(CoqTrace);
-    _                           -> #{}
+    {_, _, RuleTrace, BIFTrace} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
+                                   misc:process_trace(BIFTrace, ?COQ_BIF_LOC);
+    _                             -> #{}
   end.
-
-%% Processes the semantic trace of the used rules, and updates the report map
-%% returns #{...}
-process_trace(Trace) ->
-  ReportMap = get(coq_coverage_map),
-  UpdatedReportMap = lists:foldr(fun(Elem, Acc) ->
-                                      maps:update_with(Elem, fun(X) -> X + 1 end, Acc) 
-                                 end, ReportMap, Trace),
-  put(coq_coverage_map, UpdatedReportMap).
-
-%% FILL UP INITIAL MAP WITH KEY-0 PAIRS
-default_map() ->
-  lists:foldr(fun(Elem, Acc) -> maps:put(Elem, 0, Acc) end, #{}, semantic_rules()).
 
 %% RULE CATEGORIES
 
@@ -109,7 +119,7 @@ map_rules() -> ['_MAP', '_MAP_EX'].
 letrec_rule() -> ['_LETREC'].
 exp_list_rules() -> ['_VALUES'].
 single_rule() -> ['_SINGLE'].
-error_rules() ->  ['_FAIL', '_TIMEOUT'].
+% error_rules() ->  ['_FAIL', '_TIMEOUT'].
 
 %% Semantics rules not including exceptional evaluation
 exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH',
@@ -118,43 +128,50 @@ exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_
 
 %% All semantics rules
 semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ apply_rules() ++ list_rules() ++ call_rules() ++
-                    primop_rules() ++ try_rules() ++ variable_rule() ++ funid_rule() ++ literal_rule() ++ fun_rule() ++ error_rules() ++
+                    primop_rules() ++ try_rules() ++ variable_rule() ++ funid_rule() ++ literal_rule() ++ fun_rule() ++ % error_rules() ++
                     tuple_rules() ++ let_rules() ++ seq_rules() ++ map_rules() ++ letrec_rule() ++ exp_list_rules() ++ single_rule().
+
+%% All modeled BIFs
+bifs() -> ['+','-','*','rem','div', 'and','or','not',
+           '==','/=','++','--','tuple_to_list','list_to_tuple'
+           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement'
+           % 'is_atom', 'is_integer', 'is_boolean', 'is_number', fwrite','fread','undef', '=:=', '=/=', '/',
+           ].
 
 report() ->
   %% Rule coverage map:
-    CoqCoverage = get(coq_coverage_map),
+    RuleCoverage = get(?COQ_RULE_LOC),
   
   %% used rule percent
-    UsedRulesNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, CoqCoverage)),
+    UsedRulesNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, RuleCoverage)),
     Semantics_rules = semantic_rules(),
-    io:format("~n~nCoq coverage data:~n"),
+    misc:hline(),
+    io:format("Coq coverage data:~n"),
     io:format("Rule coverage: ~p %~n", [(UsedRulesNr / length(Semantics_rules)) * 100]),
   
   %% used exception-free rule percent
     ExcFreeRules = exceptionfree_rules(),
-    UsedExceptionFreeRulesNr = maps:size(maps:filter(fun(K, V) -> lists:member(K, ExcFreeRules) and (V > 0) end, CoqCoverage)),
+    UsedExceptionFreeRulesNr = maps:size(maps:filter(fun(K, V) -> lists:member(K, ExcFreeRules) and (V > 0) end, RuleCoverage)),
     io:format("Rule coverage without exceptions: ~p %~n", [(UsedExceptionFreeRulesNr / length(ExcFreeRules)) * 100]),
    
-  %% How many times were specific rules used
-    io:format("~nRules used:~n~n"),
-    pp_map(CoqCoverage),
+  % %% How many times were specific rules used
+  %   io:format("~nRules used:~n~n"),
+  %   pp_map(RuleCoverage),
   
   %% Report results to coq_coverage.cs
-  StatLine = maps:fold(fun(_, V, Acc) -> integer_to_list(V) ++ ";" ++ Acc end, "\n", CoqCoverage), % "~n" does not work here, only "\n"
-  case filelib:is_regular(?COQ_FILENAME) of
-    %% No header needed
-    true  -> misc:write_to_file(?COQ_FILENAME, StatLine, append);
-    
-    %% header needed
-    false ->
-      begin
-        HeaderLine = maps:fold(fun(K, _, Acc) -> atom_to_list(K) ++ ";" ++ Acc end, "\n", CoqCoverage),
-        misc:write_to_file(?COQ_FILENAME, HeaderLine ++ StatLine, append)
-      end
-  end.
+    misc:report_coverage_to_csv(RuleCoverage, ?COQ_FILENAME),
+  
+  %% BIF coverage:
+    BIFCoverage = get(?COQ_BIF_LOC),
+    UsedBIFNr = maps:size(maps:filter(fun(_, V) -> V > 0 end, BIFCoverage)),
+    io:format("BIF coverage: ~p %~n", [(UsedBIFNr / length(bifs())) * 100]),
+  
+  %% Report results to coq_bif_coverage.csv
+    misc:report_coverage_to_csv(BIFCoverage, ?COQ_BIF_FILENAME),
+    misc:hline()
+ .
 
 %% Map pretty-printer
-pp_map(Map) when is_map(Map) ->
-  %% workaround, we need foreach
-  maps:fold(fun(K, V, Acc) -> io:format("~p rule was used ~p times~n", [K, V]), Acc end, 0, Map).
+% pp_map(Map) when is_map(Map) ->
+%   %% workaround, we need foreach
+%   maps:fold(fun(K, V, Acc) -> io:format("~p rule was used ~p times~n", [K, V]), Acc end, 0, Map).
