@@ -12,7 +12,9 @@
 
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, true).
--define(TRACING, true).
+-define(TRACING, false).
+-define(GEN_REC_LIMIT, 20).
+-define(GEN_SIZE, 20).
 
 %% ---------------------------------------------------------------------
 
@@ -42,7 +44,12 @@ compare_results({ErlResult, CoqResult, KResult}) ->
                             end and
                             case KResult of
                                 {ok, KVal, _} -> KVal == ErlVal;
-                                {ok, KVal}    -> KVal == ErlVal;
+                                {_ , KVal}    -> KVal == ErlVal orelse
+                                                 case is_list(KVal) of
+                                                    % In case of parsing ambiguity (potential internal bug in K 3.6):
+                                                     true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
+                                                     false -> false
+                                                 end;
                                 _             -> false
                             end
                         end;
@@ -94,14 +101,14 @@ unit_test(Tests) when is_list(Tests) ->
 is_compilable(T) ->
     S = [erl_syntax:revert(T2) || T2 <- erl_syntax:form_list_elements(eval(T))],
     C = compile:forms(S, [strong_validation, return_errors, nowarn_unused_vars]),
-    element(1, C) /= ok andalso io:format("\nGenerated file cannot be compiled :(\n"),
+    element(1, C) /= ok andalso io:format("~nGenerated file cannot be compiled :(~n~p~n", [C]),
     element(1, C) == ok.
 
 random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(20, erlgen:module(?ModuleNamePlaceHolder, 20)),
+    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
                         false -> []
