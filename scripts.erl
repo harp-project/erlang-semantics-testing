@@ -61,8 +61,8 @@ compare_results(_) -> io:format("Illegal result format!~n"), false.
 test_case(Test, ReportDirectory) ->
     BaseName = misc:remove_extension(Test),
     ModuleName = misc:remove_directory(BaseName),
-    spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, self()]),
-    spawn(execute_coq, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    spawn(execute_ghc, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
     spawn(execute_k  , execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
     Result = {
     receive
@@ -70,7 +70,7 @@ test_case(Test, ReportDirectory) ->
     end,
     receive
         {CoqResult, coq_res}    -> CoqResult
-    end,
+    end
     receive
         {KResult, k_res}        -> KResult
     end},

@@ -1,6 +1,6 @@
 -module(execute_erl).
 
--export([execute/4, setup/0, report/0]).
+-export([execute/5, setup/0, report/0]).
 
 -define(GENERATOR, "generator/ebin/erlgen.beam").
 -define(ERL_FILENAME, "./reports/erl_coverage.csv").
@@ -17,10 +17,10 @@ run(Module, ReportDirectory) ->
     ).
 
 % wrapper
-execute(Test, ModuleName, ReportDirectory, PID) ->
-    PID ! {execute(Test, ModuleName, ReportDirectory), erl_res}.
+execute(Test, ModuleName, ReportDirectory, Tracing, PID) ->
+    PID ! {execute(Test, ModuleName, Tracing, ReportDirectory), erl_res}.
 
-execute(Test, ModuleName, ReportDirectory) ->
+execute(Test, ModuleName, _Tracing, ReportDirectory) ->
     % compile(Test++".erl") >>= run(ModuleName) >>= parse
     case compile(Test ++ ".erl", ReportDirectory) of
         {0, _} ->
