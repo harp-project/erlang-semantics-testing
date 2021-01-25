@@ -26,7 +26,7 @@ Require Import ExtrHaskellNatInt.
 (*"(\fO fS n -> if n Prelude.== 0 then fO () else fS (n Prelude.- 1))".*)
 
 
-Definition fbs_helper (expr : Expression) : (ResultType * Log) :=
-  (fbs_expr 100000 init_logs [] 0 expr []).
+Definition fbs_helper (limit : nat)(expr : Expression) : (ResultType * Log) :=
+  (fbs_expr limit init_logs [] 0 expr []).
 
 Extraction "BigStepSemanticsTraced.hs" fbs_helper result_value.
