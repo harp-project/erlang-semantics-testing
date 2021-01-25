@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/5, setup/0, report/0, update_coverage/1]).
+-export([execute/5, setup/0, report/0, update_coverage/1, parse_coq_result/2]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 -define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
