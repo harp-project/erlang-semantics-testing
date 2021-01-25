@@ -13,6 +13,7 @@
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, true).
 -define(TRACING, false).
+-define(GHC_EXPORT, true).
 -define(GEN_REC_LIMIT, 20).
 -define(GEN_SIZE, 20).
 
@@ -62,7 +63,10 @@ test_case(Test, ReportDirectory) ->
     BaseName = misc:remove_extension(Test),
     ModuleName = misc:remove_directory(BaseName),
     spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
-    spawn(execute_ghc, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
+    case ?GHC_EXPORT of
+        false -> spawn(execute_ghc, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]);
+        true  -> spawn(execute_coq, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()])
+    end,
     spawn(execute_k  , execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
     Result = {
     receive
