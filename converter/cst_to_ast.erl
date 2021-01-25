@@ -45,7 +45,7 @@ Compute result_value (fbs_expr ~p init_logs [] 0 (ESingle (ELetRec  [~s] (ESingl
 import qualified  Data.Maybe
 import BigStepSemantics
 
-main = Prelude.print Prelude.$ (result_value (fbs_helper program))
+main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
 
 program :: Expression
 program =
@@ -58,7 +58,7 @@ program =
 import qualified  Data.Maybe
 import BigStepSemanticsTraced
 
-main = Prelude.print Prelude.$ (result_value (fbs_helper program))
+main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
 
 program :: Expression
 program =
@@ -78,8 +78,8 @@ from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_cor
 
 format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [?functional_limit, PPCST]);
 format_cst(PPCST, functionalTraced) -> io_lib:format(?functional_traced, [?functional_limit, PPCST]);
-format_cst(PPCST, functionalSemanticHaskell) -> io_lib:format(?functionalHaskell, [PPCST]);
-format_cst(PPCST, functionalSemanticHaskellTraced) -> io_lib:format(?functionalHaskellTraced, [PPCST]);
+format_cst(PPCST, functionalSemanticHaskell) -> io_lib:format(?functionalHaskell, [?functional_limit, PPCST]);
+format_cst(PPCST, functionalSemanticHaskellTraced) -> io_lib:format(?functionalHaskellTraced, [?functional_limit, PPCST]);
 format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
 
 pp(V, functionalSemanticHaskell) ->
