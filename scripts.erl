@@ -13,7 +13,7 @@
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, true).
 -define(TRACING, false).
--define(GHC_EXPORT, true).
+-define(GHC_EXPORT, false).
 -define(GEN_REC_LIMIT, 20).
 -define(GEN_SIZE, 20).
 
@@ -74,7 +74,7 @@ test_case(Test, ReportDirectory) ->
     end,
     receive
         {CoqResult, coq_res}    -> CoqResult
-    end
+    end,
     receive
         {KResult, k_res}        -> KResult
     end},
