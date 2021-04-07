@@ -6,6 +6,7 @@ SED=sed
 KOMPILE=kompile
 
 COR_TESTS=$(shell find tests -name "*.erl")
+GIT_TESTS=$(shell find erllvm-bench/src/small -name "*.erl")
 
 all: cst_to_ast.beam exec.beam execute_erl.beam execute_coq.beam execute_ghc.beam execute_k.beam misc.beam BigStepSemantics.o BigStepSemanticsTraced.o
 
@@ -58,9 +59,8 @@ misc.beam: misc.erl
 check: all
 	./scripts.erl $(COR_TESTS)
 
-check-all:
-	@echo "TODO: implement"
-	exit 1
+check-git:
+	./scripts.erl $(GIT_TESTS)
 
 clean:
 	rm -f -- *.beam

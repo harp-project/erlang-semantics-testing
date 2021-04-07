@@ -9,7 +9,9 @@
 
 % wrapper
 execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
-  PID ! {execute(TestPath, BaseName, ReportDirectory, Tracing), k_res}.
+  Res = execute(TestPath, BaseName, ReportDirectory, Tracing), 
+  io:format("K is ready!~n"),
+  PID ! {Res, k_res}.
 
 execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     
