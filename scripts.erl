@@ -14,8 +14,9 @@
 -define(SHRINKING, true).
 -define(TRACING, false).
 -define(GHC_EXPORT, false).
--define(GEN_REC_LIMIT, 20).
--define(GEN_SIZE, 20).
+-define(GEN_REC_LIMIT, 2).
+-define(GEN_SIZE, 2).
+-define(GEN_REC_WEIGHT, 1).
 
 %% ---------------------------------------------------------------------
 
@@ -113,7 +114,7 @@ random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT)),
+    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
                         false -> []
@@ -127,6 +128,7 @@ random_test(NumTests) ->
                 put(test_id, TestId+1),
                 RawProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
                 ProgramText = re:replace(RawProgramText, ?ModuleNamePlaceHolder, ModuleName, [global, {return, list}]),
+                io:format("~n~s~n", [ProgramText]),
                 FilePath = ReportDirectory ++ ModuleName ++ ".erl",
                 misc:write_to_file(FilePath, ProgramText, write),
                 test_case(FilePath, ReportDirectory)
