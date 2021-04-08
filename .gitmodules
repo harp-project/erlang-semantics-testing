@@ -4,3 +4,6 @@
 [submodule "erlang-semantics"]
 	path = erlang-semantics
 	url = https://github.com/harp-project/erlang-semantics.git
+[submodule "erllvm-bench"]
+	path = erllvm-bench
+	url = https://github.com/cstavr/erllvm-bench.git
