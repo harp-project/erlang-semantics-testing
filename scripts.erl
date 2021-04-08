@@ -84,6 +84,7 @@ test_case(Test, ReportDirectory) ->
     %     execute_k:execute(BaseName, ModuleName, ReportDirectory, ?TRACING)
     % },
     Success = compare_results(Result),
+    io:format("~n~n"),
     report(ModuleName, ReportDirectory, Result, Success),
     if 
       ?TRACING -> execute_coq:update_coverage(element(2,Result)),

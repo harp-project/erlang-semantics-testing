@@ -22,7 +22,7 @@ convert_erl_to_coq(TestPath, BaseName, ReportDirectory, _Tracing) ->
 % wrapper
 execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
   Res = execute(TestPath, BaseName, ReportDirectory, Tracing),  
-  io:format("GHC is ready!~n"),
+  io:format("GHC is ready!: ~p~n", [Res]),
   PID ! {Res, coq_res}.
 
 execute(TestPath, BaseName, ReportDirectory, Tracing) ->

@@ -5,3 +5,10 @@
 *.vos
 *.vok
 *.beam
+*.hi
+*.o
+BigStepSemantics.hs
+BigStepSemanticsTraced.hs
+reports/*
+*.dump
+bench/*

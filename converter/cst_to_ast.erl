@@ -65,7 +65,7 @@ program =
   ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId ((,) \"main\" 0))) ([]))))
 \n").
 
--define(functional_limit, 100000).
+-define(functional_limit, 100000000000000).
 
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalTraced; %functionalSemantic;
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> functionalSemantic.

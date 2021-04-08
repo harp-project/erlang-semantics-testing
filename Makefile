@@ -6,9 +6,14 @@ SED=sed
 KOMPILE=kompile
 
 COR_TESTS=$(shell find tests -name "*.erl")
-GIT_TESTS=$(shell find erllvm-bench/src/small -name "*.erl")
+GIT_PREFIX=erllvm-bench/src/small/
+BENCH_PREFIX=bench/
+GIT_TESTS=decode.erl fib.erl huff.erl length.erl length_c.erl length_u.erl mean_nnc.erl nrev.erl qsort.erl smith.erl tak.erl zip_nnc.erl
 
-all: cst_to_ast.beam exec.beam execute_erl.beam execute_coq.beam execute_ghc.beam execute_k.beam misc.beam BigStepSemantics.o BigStepSemanticsTraced.o
+all: cst_to_ast.beam exec.beam execute_erl.beam execute_coq.beam execute_ghc.beam execute_k.beam misc.beam BigStepSemantics.o BigStepSemanticsTraced.o setup_tests
+
+setup_tests:
+	bash setup_tests.sh $(addprefix $(GIT_PREFIX), $(GIT_TESTS))
 
 compile_k: erlang-semantics/erl_env/erl.k
 	$(KOMPILE) erlang-semantics/erl_env/erl.k
@@ -59,8 +64,8 @@ misc.beam: misc.erl
 check: all
 	./scripts.erl $(COR_TESTS)
 
-check-git:
-	./scripts.erl $(GIT_TESTS)
+check-bench:
+	./scripts.erl $(addprefix $(BENCH_PREFIX), $(GIT_TESTS))
 
 clean:
 	rm -f -- *.beam
@@ -84,4 +89,4 @@ clean:
 	rm -f -- Program1.o
 	rm -f -- Main.hi
 	rm -f -- Main.o
-
+	rm -f -- *.P

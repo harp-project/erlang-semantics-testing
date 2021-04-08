@@ -10,7 +10,7 @@
 % wrapper
 execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
   Res = execute(TestPath, BaseName, ReportDirectory, Tracing), 
-  io:format("K is ready!~n"),
+  io:format("K is ready!: ~p~n", [Res]),
   PID ! {Res, k_res}.
 
 execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
@@ -19,14 +19,17 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     KDir = if Tracing -> ?TRACED_KDIR;
               true    -> ?KDIR
            end,
+    %io:format("~s~n~s", [BaseName, ModuleName]),
+    compile:file(BaseName, ['P']),
+    exec:shell_exec(io_lib:format("sed -i '1d' ~s", [ModuleName ++ ".P"])),
     case
         exec:shell_exec(
             io_lib:format("krun -d ~s --config-var Exp=\"~s:main(.Exps)\" ~s", [
-               KDir,
-               ModuleName,
-               BaseName ++ ".erl"
-           ])
-        )
+              KDir,
+              ModuleName,
+              ModuleName ++ ".P"
+          ])
+       )
     of
         {_, Output} ->
             FileName = ReportDirectory ++ ModuleName ++ ".kresult",
