@@ -22,6 +22,7 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     %io:format("~s~n~s", [BaseName, ModuleName]),
     compile:file(BaseName, ['P']),
     exec:shell_exec(io_lib:format("sed -i '1d' ~s", [ModuleName ++ ".P"])),
+    exec:shell_exec(io_lib:format("sed -i \"s/- /-/g\" ~s", [ModuleName ++ ".P"])),
     case
         exec:shell_exec(
             io_lib:format("krun -d ~s --config-var Exp=\"~s:main(.Exps)\" ~s", [
