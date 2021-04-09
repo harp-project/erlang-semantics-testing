@@ -11,7 +11,7 @@ Import ListNotations.
 \n
 Notation \"%% v\" := (inl [v]) (at level 50).
 \n 
-Goal exists res, ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) []))) --e-> res.
+Goal exists res, ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) []) --e-> res.
 Proof.
 eexists.
 match goal with
@@ -27,7 +27,7 @@ Import Core_Erlang_Functional_Big_Step.Functional_Big_Step.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute result_value (fbs_expr ~p [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
+Compute result_value (fbs_expr ~p [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
 \n").
 
 -define(functional_traced,
@@ -36,7 +36,7 @@ Import Core_Erlang_Coverage.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute result_value (fbs_expr ~p init_logs [] 0 (ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId (\"main\"%string,0))) [])))) []). \n\n
+Compute result_value (fbs_expr ~p init_logs [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
 \n").
 
 -define(functionalHaskell,
@@ -49,7 +49,7 @@ main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
 
 program :: Expression
 program =
-  ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId ((,) \"main\" 0))) ([]))))
+  ELetRec  [~s] (EApp (EFunId ((,) \"main\" 0)) ([]))
 \n").
 
 -define(functionalHaskellTraced,
@@ -62,10 +62,10 @@ main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
 
 program :: Expression
 program =
-  ESingle (ELetRec  [~s] (ESingle (EApp (ESingle (EFunId ((,) \"main\" 0))) ([]))))
+  ELetRec  [~s] (EApp (EFunId ((,) \"main\" 0)) ([]))
 \n").
 
--define(functional_limit, 100000000000000).
+-define(functional_limit, 1000000).
 
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalTraced; %functionalSemantic;
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> functionalSemantic.

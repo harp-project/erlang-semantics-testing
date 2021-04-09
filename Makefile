@@ -8,7 +8,7 @@ KOMPILE=kompile
 COR_TESTS=$(shell find tests -name "*.erl")
 GIT_PREFIX=erllvm-bench/src/small/
 BENCH_PREFIX=bench/
-GIT_TESTS=decode.erl fib.erl huff.erl length.erl length_c.erl length_u.erl mean_nnc.erl nrev.erl qsort.erl smith.erl tak.erl zip_nnc.erl
+GIT_TESTS=huff.erl length.erl length_c.erl length_u.erl nrev.erl qsort.erl smith.erl tak.erl zip_nnc.erl fib.erl
 
 all: cst_to_ast.beam exec.beam execute_erl.beam execute_coq.beam execute_ghc.beam execute_k.beam misc.beam BigStepSemantics.o BigStepSemanticsTraced.o setup_tests
 
