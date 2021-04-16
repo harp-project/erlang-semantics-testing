@@ -75,7 +75,7 @@ convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
 % wrapper
 execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
   Res = execute(TestPath, BaseName, ReportDirectory, Tracing),
-  io:format("Coq is ready!: ~p~n", [Res]),
+  % io:format("Coq is ready!: ~p~n", [element(2, Res)]),
   PID ! {Res, coq_res}.
 
 execute(TestPath, BaseName, ReportDirectory, Tracing) ->
@@ -126,7 +126,7 @@ single_rule() -> ['_SINGLE'].
 %% Semantics rules not including exceptional evaluation
 exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH',
                           '_APP', '_CONS', '_NIL', '_CALL', '_PRIMOP', '_VAR', '_FUNID', '_LIT',
-                          '_FUN', '_TUPLE', '_LET', '_SEQ', '_MAP', '_LETREC', '_VALUES', '_SINGLE'].
+                          '_FUN', '_TUPLE', '_LET', '_SEQ', '_MAP', '_LETREC', '_VALUES'].
 
 %% All semantics rules
 semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ apply_rules() ++ list_rules() ++ call_rules() ++
@@ -134,10 +134,10 @@ semantic_rules() -> coq_list_rules() ++ case_rules() ++ case_helper_rules() ++ a
                     tuple_rules() ++ let_rules() ++ seq_rules() ++ map_rules() ++ letrec_rule() ++ exp_list_rules() ++ single_rule().
 
 %% All modeled BIFs
-bifs() -> ['+','-','*','rem','div', 'and','or','not',
+bifs() -> ['+','-','*','rem','div', 'and','or','not', 'abs', 'bsl', 'bsr',
            '==','/=','++','--','tuple_to_list','list_to_tuple'
-           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement'
-           % 'is_atom', 'is_integer', 'is_boolean', 'is_number', fwrite','fread','undef', '=:=', '=/=', '/',
+           ,'<','=<','>','>=','length','tuple_size','tl','hd','element','setelement',
+           'is_atom', 'is_integer', 'is_boolean', 'is_number'%, fwrite','fread','undef', '=:=', '=/=', '/',
            ].
 
 report() ->

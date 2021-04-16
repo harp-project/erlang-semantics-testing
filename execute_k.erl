@@ -10,7 +10,7 @@
 % wrapper
 execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
   Res = execute(TestPath, BaseName, ReportDirectory, Tracing), 
-  io:format("K is ready!: ~p~n", [Res]),
+  % io:format("K is ready!: ~p~n", [element(2, Res)]),
   PID ! {Res, k_res}.
 
 execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
@@ -22,7 +22,7 @@ execute(BaseName, ModuleName, ReportDirectory, Tracing) ->
     %io:format("~s~n~s", [BaseName, ModuleName]),
     compile:file(BaseName, ['P']),
     exec:shell_exec(io_lib:format("sed -i '1d' ~s", [ModuleName ++ ".P"])),
-    exec:shell_exec(io_lib:format("sed -i \"s/- /-/g\" ~s", [ModuleName ++ ".P"])),
+    exec:shell_exec(io_lib:format("sed -Ei \"s/- ([0-9])/-\\1/g\" ~s", [ModuleName ++ ".P"])),
     case
         exec:shell_exec(
             io_lib:format("krun -d ~s --config-var Exp=\"~s:main(.Exps)\" ~s", [
@@ -105,7 +105,7 @@ get_k_trace(Output) ->
 
 semantic_rules() -> exceptionfree_rules() ++ exceptional_rules().
 
-exceptionfree_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", "is_integer", "is_number", 
+exceptionfree_rules() -> ["lookup_var", "lookup_fun", "is_atom", "is_boolean", "is_integer", "is_number", "abs",
                           "hd", "tl", "element", "setelement", 
                           "tuple_size", "list_to_tuple", "tuple_to_list", "length", "matches_and_restore", "matches_fun_and_restore", "matches", "matches_guard",
                           "matches_fun", "mult", "div", "rem", "plus", "minus", "lt", "le", "lt_list", "ge", "gt", "or", "eq", "neq", 
@@ -114,7 +114,7 @@ exceptionfree_rules() -> ["lookup_var", "lookup_fun", %"is_atom", "is_boolean", 
                           "fa_local_call", 
                           "if", "case", "match", "begin_end"].
 
-exceptional_rules() -> ["div_ex", "rem_ex", "or_ex", "and_ex", "anon_call_badarity", "fa_call_badfun", "andalso_ex", "orelse_ex", "not_ex", "app_ex", 
+exceptional_rules() -> ["div_ex", "rem_ex", "or_ex", "and_ex", "anon_call_badarity", "fa_call_badfun", "andalso_ex", "orelse_ex", "not_ex", "app_ex", "abs_ex",
                         "diff_ex", "hd_ex", "tl_ex", "element_ex", "setelement_ex", "tuple_size_ex", "list_to_tuple_ex", "tuple_to_list_ex", "length_ex"]. % "fa_call_badarity", "fa_call_undef", 
 
 setup() ->
