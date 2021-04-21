@@ -33,7 +33,11 @@ Supplied dependencies:
 - `./scripts.erl <Erlang file/path>`: runs the Erlang code, and both semantics for the same code
 - `./scripts.erl random <num>`: runs `<num>` random tests or stops after finding an error
 
-In the `scripts.erl` file there are two options:
+In the `scripts.erl` file there are several options:
 
 - With `TRACING` the coverage measurment can be turned on/off
 - With `SHRINKING` the shrinking of found counterexamples can be turned on/off
+- With `GHC_EXPORT` the extraction of the Core Erlang semantics can be turned on/off
+- With `GEN_REC_LIMIT` the generated program size can be customized
+- With `GEN_SIZE` the generated base value (e.g. variable names, numbers) sizes can be customized
+- With `GEN_REC_WEIGHT` the propability of using recursive generation rule can be set
