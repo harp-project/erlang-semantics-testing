@@ -66,7 +66,6 @@ program =
 \n").
 
 -define(functional_limit, 1000000).
-
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalTraced; %functionalSemantic;
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> functionalSemantic.
 
