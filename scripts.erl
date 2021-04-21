@@ -11,11 +11,12 @@
 %% OPTIONS
 
 -define(REPORT_DIRECTORY, "./reports/").
--define(SHRINKING, true).
--define(TRACING, false).
+-define(SHRINKING, false).
+-define(TRACING, true).
 -define(GHC_EXPORT, false).
--define(GEN_REC_LIMIT, 20).
--define(GEN_SIZE, 20).
+-define(GEN_REC_LIMIT, 100).
+-define(GEN_SIZE, 15).
+-define(GEN_REC_WEIGHT, 1).
 
 %% ---------------------------------------------------------------------
 
@@ -44,8 +45,13 @@ compare_results({ErlResult, CoqResult, KResult}) ->
                                 _                  -> false
                             end and
                             case KResult of
-                                {ok, KVal, _} -> KVal == ErlVal;
-                                {_ , KVal}    -> KVal == ErlVal orelse
+                                {_, KVal, _} -> KVal == ErlVal orelse
+                                                case is_list(KVal) of
+                                                % In case of parsing ambiguity (potential internal bug in K 3.6):
+                                                    true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
+                                                    false -> false
+                                                end;
+                                {_ , KVal}   -> KVal == ErlVal orelse
                                                  case is_list(KVal) of
                                                     % In case of parsing ambiguity (potential internal bug in K 3.6):
                                                      true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
@@ -78,11 +84,6 @@ test_case(Test, ReportDirectory) ->
     receive
         {KResult, k_res}        -> KResult
     end},
-    % Result = {
-    %     execute_erl:execute(BaseName, ModuleName, ReportDirectory),
-    %     execute_coq:execute(BaseName, ModuleName, ReportDirectory, ?TRACING),
-    %     execute_k:execute(BaseName, ModuleName, ReportDirectory, ?TRACING)
-    % },
     Success = compare_results(Result),
     report(ModuleName, ReportDirectory, Result, Success),
     if 
@@ -112,7 +113,7 @@ random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT)),
+    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
     G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
                         {value, {_, Value}} -> Value;
                         false -> []
@@ -165,7 +166,6 @@ report() ->
                    execute_k:report();
        true     -> io:format("~nCoverage data is not measured!~n")
     end.
-
 
 main(Args) ->
     setup(),

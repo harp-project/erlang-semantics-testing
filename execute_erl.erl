@@ -18,7 +18,9 @@ run(Module, ReportDirectory) ->
 
 % wrapper
 execute(Test, ModuleName, ReportDirectory, Tracing, PID) ->
-    PID ! {execute(Test, ModuleName, Tracing, ReportDirectory), erl_res}.
+  Res = execute(Test, ModuleName, Tracing, ReportDirectory),
+  % io:format("Erlang is ready!: ~p~n", [element(2, Res)]),  
+  PID ! {Res, erl_res}.
 
 execute(Test, ModuleName, _Tracing, ReportDirectory) ->
     % compile(Test++".erl") >>= run(ModuleName) >>= parse

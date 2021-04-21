@@ -9,7 +9,7 @@ stringformat([], _) -> [].
 %% Adding module functions to letrec
 
 pp_expr(#c_values{es=Es}) -> "(EValues [" ++ pp_list(Es, ";", fun pp/1) ++ "])";
-pp_expr(E) -> stringformat("(ESingle ~s)", [pp(E)]).
+pp_expr(E) -> pp(E).
 
 pp(#c_module{defs=Ds}) ->
 	pp_list(Ds,";",fun ({_FunId,Body}) -> stringformat("(~s,~s)",[pp_letrec_sign(_FunId), pp(Body, ok)]) end);
