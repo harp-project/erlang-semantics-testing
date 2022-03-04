@@ -11,8 +11,20 @@ stringformat([], _) -> [].
 pp_expr(#c_values{es=Es}) -> "(EValues [" ++ pp_list(Es, ";", fun pp/1) ++ "])";
 pp_expr(E) -> pp(E).
 
-pp(#c_module{defs=Ds}) ->
-	pp_list(Ds,";",fun ({_FunId,Body}) -> stringformat("(~s,~s)",[pp_letrec_sign(_FunId), pp(Body, ok)]) end);
+pp_topfun(#c_fun{vars=Vs, body=B}) ->
+  stringformat("varl := [~s]; body := ~s", [pp_list(Vs, ";", fun pp_var/1), pp_expr(B)]);
+pp_topfun(_) -> todo.
+
+pp(#c_module{name=#c_literal{val=Name}, exports=Exports, attrs=Attrs, defs=Ds}) ->
+  stringformat("{| name := \"~s\"%string; funcIds := [~s]; attrs := [~s]; funcs := [~s] |}",
+               [atom_to_list(Name),
+                pp_list(Exports,";",fun pp_var/1),
+                pp_list([],";",fun pp/1), % TODO!!!
+                pp_list(Ds,";",fun({FunId, Body}) -> stringformat("{| identifier := ~s ; ~s |}",[pp_letrec_sign(FunId), pp_topfun(Body)]) end)
+               ]);
+
+pp(#c_module{name=Name, exports=Exports, attrs=Attrs, defs=Ds}) ->
+  io:format("~n~nWrong format: ~w~n~n", [Name]);
 
 %% Pretty Printing Expressions
 
@@ -62,8 +74,8 @@ pp(#c_cons{hd=Hd,tl=Tl}) ->
 %% Correct call formalization (for future syntax)
 %pp(#c_call{name=N, module=M args=Es}) ->
 %  stringformat("(ECall ~s ~s [~s])", [pp_expr(M), pp_expr(N), pp_list(Es,";", fun pp_expr/1)]);
-pp(#c_call{name=N,args=Es}) ->
-	stringformat("(ECall ~s [~s])", [pp_var(N), pp_list(Es,";", fun pp_expr/1)]);
+pp(#c_call{module=M,name=N,args=Es}) ->
+	stringformat("(ECall ~s ~s [~s])", [pp(M),pp(N), pp_list(Es,";", fun pp_expr/1)]);
 
 pp(#c_tuple{es=Es}) ->
   stringformat("(ETuple [~s])", [pp_list(Es,";", fun pp_expr/1)]);
@@ -111,7 +123,9 @@ pp_var(#c_var{name=N}) when is_atom(N) ->
 pp_var(#c_var{name=N}) when is_integer(N) ->
   "\"_"++ integer_to_list(N) ++ "\"%string";
 pp_var(#c_literal{val=V}) ->
-  "\"" ++ atom_to_list(V) ++ "\"%string".
+  "\"" ++ atom_to_list(V) ++ "\"%string";
+pp_var(#c_var{name={N, A}}) ->
+  stringformat("(\"~s\"%string, ~s)", [atom_to_list(N), integer_to_list(A)]).
 
 pp_list(Es, S, F) -> string:join(lists:map(F, Es), S).
 
