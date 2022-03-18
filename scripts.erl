@@ -13,7 +13,7 @@
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, false).
 -define(TRACING, true).
--define(GHC_EXPORT, false).
+-define(GHC_EXPORT, true).
 -define(GEN_REC_LIMIT, 100).
 -define(GEN_SIZE, 15).
 -define(GEN_REC_WEIGHT, 1).

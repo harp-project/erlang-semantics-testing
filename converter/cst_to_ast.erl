@@ -36,8 +36,11 @@ Import Core_Erlang_Coverage.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute result_value (fbs_expr ~p init_logs [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
+Compute ~p. \n\n
+Check ~s.
 \n").
+
+% Compute result_value (fbs_expr ~p init_logs [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
 
 -define(functionalHaskell,
 "module Main where
