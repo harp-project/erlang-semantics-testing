@@ -14,8 +14,8 @@
 -define(SHRINKING, false).
 -define(TRACING, true).
 -define(GHC_EXPORT, true).
--define(GEN_REC_LIMIT, 100).
--define(GEN_SIZE, 15).
+-define(GEN_REC_LIMIT, 10).
+-define(GEN_SIZE, 4).
 -define(GEN_REC_WEIGHT, 1).
 
 %% ---------------------------------------------------------------------
@@ -101,35 +101,39 @@ unit_test(Tests) when is_list(Tests) ->
 
 %% ---------------------------------------------------------------------
 
--define(ModuleNamePlaceHolder, "modulenameplaceholder").
-
 is_compilable(T) ->
     S = [erl_syntax:revert(T2) || T2 <- erl_syntax:form_list_elements(eval(T))],
     C = compile:forms(S, [strong_validation, return_errors, nowarn_unused_vars]),
     element(1, C) /= ok andalso io:format("~nGenerated file cannot be compiled :(~n~p~n", [C]),
     element(1, C) == ok.
 
+prettyprint_generated_module(T, ReportDirectory) ->
+    ModuleNamePattern = io_lib:format("test~p_module\\1", [get(test_id)]),
+    RawProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
+    ProgramText = re:replace(RawProgramText, "module([0-9]+)", ModuleNamePattern, [global, {return, list}]),
+    {match,[{Pos,Len}]} = re:run(ProgramText, "test[0-9]+_module[0-9]+", [{capture, first}]),
+    ModuleName = string:substr(ProgramText, Pos+1, Len),
+    FilePath = ReportDirectory ++ ModuleName ++ ".erl",
+    misc:write_to_file(FilePath, ProgramText, write),
+    FilePath.
+
 random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
+    ModCnt = 3,
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(?GEN_SIZE, erlgen:module(?ModuleNamePlaceHolder, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
-    G2 = ?LET(M, G, case lists:keysearch(value, 1, M) of
-                        {value, {_, Value}} -> Value;
-                        false -> []
-                    end),
-    G3 = ?SUCHTHAT(T, G2, is_compilable(T)),
-    P = ?FORALL(T, if ?SHRINKING -> G3; true -> noshrink(G3) end,
+    G = resize(?GEN_SIZE, gen_erlang:gen_modules(ModCnt, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
+    G2 = ?LET(M, G, proplists:get_value(value, M)),
+    G3 = ?SUCHTHAT(Ts, G2,
+                   lists:all(fun(T) -> true end, Ts)),
+    P = ?FORALL(Ts, if ?SHRINKING -> G3; true -> noshrink(G3) end,
           %?WHENFAIL(io:format("~n~s~n", [erl_prettypr:format(eqc_symbolic:eval(T))]),
             begin
-                TestId = get(test_id),
-                ModuleName = io_lib:format("module~p", [TestId]),
-                put(test_id, TestId+1),
-                RawProgramText = erl_prettypr:format(eqc_symbolic:eval(T)),
-                ProgramText = re:replace(RawProgramText, ?ModuleNamePlaceHolder, ModuleName, [global, {return, list}]),
-                FilePath = ReportDirectory ++ ModuleName ++ ".erl",
-                misc:write_to_file(FilePath, ProgramText, write),
-                test_case(FilePath, ReportDirectory)
+                FilePaths = [prettyprint_generated_module(T, ReportDirectory) || T <- Ts],
+                % test_case(FilePath, ReportDirectory)
+                % TODO compile all files in FilePaths, execute some functions and compare the results
+                put(test_id, get(test_id)+1),
+                true
             end
           %)
         ),
