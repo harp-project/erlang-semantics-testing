@@ -13,7 +13,7 @@
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, false).
 -define(TRACING, false).
--define(GHC_EXPORT, false).
+-define(GHC_EXPORT, true).
 -define(GEN_REC_LIMIT, 2).
 -define(GEN_SIZE, 2).
 -define(GEN_REC_WEIGHT, 1).
@@ -53,7 +53,7 @@ check_cases(FilePaths, ReportDirectory) ->
   % Compile Coq or Haskell
   CoqResults =
       case ?GHC_EXPORT of
-          true  -> io:format("GHC Export is not supported yet~n");
+          true  -> execute_ghc:execute(FilePaths, ReportDirectory, ?TRACING);
           false -> execute_coq:execute(FilePaths, ReportDirectory, ?TRACING)
       end,
   % Execute Erlang

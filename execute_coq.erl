@@ -83,7 +83,7 @@ parse_coq_result(Output, Tracing) ->
 %    parse_coq_result(Output, Tracing).
 
 execute(FilePaths, ReportDirectory, Tracing) ->
-  ModuleNames = cst_to_ast:from_erl(FilePaths, ReportDirectory, Tracing),
+  ModuleNames = cst_to_ast:from_erl(FilePaths, ReportDirectory, Tracing, false), % false = this is not GHC export
   [{ModName, parse_coq_result(compile_coq(atom_to_list(ModName), ReportDirectory), Tracing)} || ModName <- ModuleNames].
    
 

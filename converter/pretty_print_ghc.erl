@@ -9,15 +9,15 @@ pp_expr(#c_values{es=Es}) -> "(EValues [" ++ pp_list(Es, ", ", fun pp/1) ++ "])"
 pp_expr(E) -> pp(E).
 
 pp_topfun(#c_fun{vars=Vs, body=B}) ->
-  io_lib:format("varl := [~s]; body := ~s", [pp_list(Vs, ",", fun pp_var/1), pp_expr(B)]);
+  io_lib:format(" [~s] ~s", [pp_list(Vs, ", ", fun pp_var/1), pp_expr(B)]);
 pp_topfun(_) -> todo.
 
 pp(#c_module{name=#c_literal{val=Name}, exports=Exports, attrs=Attrs, defs=Ds}) ->
-  io_lib:format("{| name := \"~s\"%string; funcIds := [~s]; attrs := [~s]; funcs := [~s] |}",
+  io_lib:format("MkModule \"~s\" [~s] [~s] [~s]",
                [atom_to_list(Name),
                 pp_list(Exports,",",fun pp_var/1),
                 pp_list([],",",fun pp/1), % TODO!!!
-                pp_list(Ds,",",fun({FunId, Body}) -> io_lib:format("{| identifier := ~s ; ~s |}",[pp_letrec_sign(FunId), pp_topfun(Body)]) end)
+                pp_list(Ds,",",fun({FunId, Body}) -> io_lib:format("MkTopLevelFunc ~s ~s",[pp_letrec_sign(FunId), pp_topfun(Body)]) end)
                ]);
 
 pp(#c_module{name=Name, exports=Exports, attrs=Attrs, defs=Ds}) ->
@@ -119,9 +119,9 @@ pp_var(#c_var{name=N}) when is_atom(N) ->
 pp_var(#c_var{name=N}) when is_integer(N) ->
   "\"_"++ integer_to_list(N) ++ "\"";
 pp_var(#c_literal{val=V}) ->
-  "\"" ++ atom_to_list(V) ++ "\"%string";
+  "\"" ++ atom_to_list(V) ++ "\"";
 pp_var(#c_var{name={N, A}}) ->
-  io_lib:format("(\"~s\"%string, ~s)", [atom_to_list(N), integer_to_list(A)]).
+  io_lib:format("(\"~s\", ~s)", [atom_to_list(N), integer_to_list(A)]).
 
 pp_list(Es, S, F) -> string:join(lists:map(F, Es), S).
 

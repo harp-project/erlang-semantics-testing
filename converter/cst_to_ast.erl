@@ -1,25 +1,6 @@
 -module(cst_to_ast).
--export([from_erl/3]).
+-export([from_erl/4]).
 -include_lib("compiler/src/core_parse.hrl").
-
--define(traditional,
-"Require Core_Erlang.Core_Erlang_Tactics.
-Import Core_Erlang_Tactics.Tactics.
-Import Core_Erlang_Syntax.Value_Notations.
-Import Core_Erlang_Semantics.Semantics.
-Import ListNotations.
-\n
-Notation \"%% v\" := (inl [v]) (at level 50).
-\n 
-Goal exists res, ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) []) --e-> res.
-Proof.
-eexists.
-match goal with
-| |- ?a => assert a as Main
-end. { apply eval_expr_intro. eexists. eexists. timeout 240 solve. }
-simpl in *. unfold ttrue, ffalse, ok in *. Check Main. exact Main.
-Abort. \n\n
-\n").
 
 -define(functional,
 "Require Core_Erlang.Core_Erlang_Functional_Big_Step.
@@ -32,32 +13,33 @@ Compute result_value (fbs_expr ~p [] ~s \"mytestmodule\" 0 (ECall (ELit (Atom \"
 \n").
 % ~p : depth, ~s: modules, ~s: module name
 
+% TODO: update
 -define(functional_traced,
 "Require Core_Erlang.Core_Erlang_Coverage.
 Import Core_Erlang_Coverage.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
 \n 
-Compute ~p. \n\n
-Check ~s.
+Compute result_value (fbs_expr ~p init_logs [] ~s \"mytestmodule\" 0 (ECall (ELit (Atom \"~s\")) (ELit (Atom \"main\")) []) []). \n\n
 \n").
 
 % Compute result_value (fbs_expr ~p init_logs [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
 
--define(functionalHaskell,
+-define(functional_haskell,
 "module Main where
 
 import qualified  Data.Maybe
 import BigStepSemantics
 
-main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
+main = Prelude.print Prelude.$ (result_value (fbs_helper ~p ~s \"mytestmodule\" program))
 
 program :: Expression
 program =
-  ELetRec  [~s] (EApp (EFunId ((,) \"main\" 0)) ([]))
+  ECall (ELit (Atom \"~s\")) (ELit (Atom \"main\")) []
 \n").
 
--define(functionalHaskellTraced,
+% TODO: update
+-define(functional_haskell_traced,
 "module Main where
 
 import qualified  Data.Maybe
@@ -71,43 +53,37 @@ program =
 \n").
 
 -define(functional_limit, 1000000).
-map_boolean_to_semantic_selector(true) -> functionalTraced;
-map_boolean_to_semantic_selector(false) -> functionalSemantic.
 
-from_erl(FilePaths, ReportDirectory, SemanticSelector) when is_boolean(SemanticSelector)  -> from_erl(FilePaths, ReportDirectory, map_boolean_to_semantic_selector(SemanticSelector));
-from_erl(FilePaths, ReportDirectory, SemanticSelector)  -> 
+map_semantic_selector(true, true) -> functional_haskell_traced;
+map_semantic_selector(false, true) -> functional_haskell;
+map_semantic_selector(true, false) -> functional_traced;
+map_semantic_selector(false, false) -> functional.
+
+from_erl(FilePaths, ReportDirectory, SemanticSelector, Export)  -> 
+  {Extension, Separator} = case Export of
+				             true  -> {".hs", ","};
+				             false -> {".v", ";"}
+			               end,
   Modules = [begin
                CompResult = compile:file(Path, [to_core, no_copt, binary]),
-               {element(2, CompResult), pp(element(3, CompResult), SemanticSelector)} 
+               {element(2, CompResult), pp(element(3, CompResult), map_semantic_selector(SemanticSelector, Export))} 
              end
              || Path <- FilePaths],
-  AllModules = "[" ++ lists:droplast(lists:foldr(fun({_, Code}, Acc) -> Code ++ ";" ++ Acc end, "", Modules)) ++ "]",
+  AllModules = "[" ++ lists:droplast(lists:foldr(fun({_, Code}, Acc) -> Code ++ Separator ++ Acc end, "", Modules)) ++ "]",
   [ begin
-      misc:write_to_file(ReportDirectory ++ atom_to_list(Module) ++ ".v", format_cst(AllModules, atom_to_list(Module), SemanticSelector)),
+      misc:write_to_file(ReportDirectory ++ atom_to_list(Module) ++ Extension, format_cst(AllModules, atom_to_list(Module), map_semantic_selector(SemanticSelector, Export))),
       Module
     end || {Module, _} <- Modules].
 
-% from_core(Path, SemanticSelector) when is_boolean(SemanticSelector) -> from_core(Path, map_boolean_to_semantic_selector(SemanticSelector));
-% from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary]), SemanticSelector).
+format_cst(Modules, Mod, functional) -> io_lib:format(?functional, [?functional_limit, Modules, Mod]);
+format_cst(Modules, Mod, functional_traced) -> io_lib:format(?functional_traced, [?functional_limit, Modules, Mod]);
+format_cst(Modules, Mod, functional_haskell) -> io_lib:format(?functional_haskell, [?functional_limit, Modules, Mod]);
+format_cst(Modules, Mod, functional_haskell_traced) -> io_lib:format(?functional_haskell_traced, [?functional_limit, Modules, Mod]).
 
-format_cst(Modules, Mod, functionalSemantic) -> io_lib:format(?functional, [?functional_limit, Modules, Mod]);
-format_cst(Modules, Mod, functionalTraced) -> io_lib:format(?functional_traced, [?functional_limit, Modules, Mod]);
-format_cst(Modules, Mod, functionalSemanticHaskell) -> io_lib:format(?functionalHaskell, [?functional_limit, Modules, Mod]);
-format_cst(Modules, Mod, functionalSemanticHaskellTraced) -> io_lib:format(?functionalHaskellTraced, [?functional_limit, Modules, Mod]);
-format_cst(Modules, Mod, traditionalSemantic) -> io_lib:format(?traditional, [Modules, Mod]).
-
-pp(V, functionalSemanticHaskell) ->
+pp(V, functional_haskell) ->
   pretty_print_ghc:pp(V);
-pp(V, functionalSemanticHaskellTraced) ->
+pp(V, functional_haskell_traced) ->
   pretty_print_ghc:pp(V);
 pp(V, _SemanticSelector) ->
   pretty_print_coq:pp(V).
 
-%do_pp(V, SemanticSelector) ->
-%  case V of
-%    {ok, _, CST     } -> format_cst(pp(CST, SemanticSelector), SemanticSelector);
-%    {ok, _, CST, _Ws} -> format_cst(pp(CST, SemanticSelector), SemanticSelector);
-%     error            -> error;
-%    {error, _Es, _Ws} -> error
-%  end.
-  

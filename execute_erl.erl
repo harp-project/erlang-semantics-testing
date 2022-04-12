@@ -13,7 +13,6 @@ compile(FilePaths, ReportDirectory) ->
   lists:foreach(fun(Path) -> compile:file(Path, [{outdir, ReportDirectory}]) end, FilePaths).
 
 run(Module, ReportDirectory) ->
-    io:format("~n~n~s~n~s~n~n", [Module, ReportDirectory]),
     exec:shell_exec(
         io_lib:format("erl -pa ~s -noshell -eval \"io:format('~~p', [~s:main()])\" -eval 'init:stop()'", [
             ReportDirectory,
