@@ -17,6 +17,7 @@
 -define(GEN_REC_LIMIT, 2).
 -define(GEN_SIZE, 2).
 -define(GEN_REC_WEIGHT, 1).
+-define(NATIVE, false). % Erlang evaluation should happen inside this shell, or not
 
 %% ---------------------------------------------------------------------
 
@@ -56,7 +57,11 @@ check_cases(FilePaths, ReportDirectory) ->
           false -> execute_coq:execute(FilePaths, ReportDirectory, ?TRACING)
       end,
   % Execute Erlang
-  ErlangResults = execute_erl:execute(FilePaths),
+  ErlangResults = if
+                    ?NATIVE -> execute_erl:execute(FilePaths);  % This version is simple, but EQC generates error reports from the exceptions occured while
+                                                                % executing the generated code
+                    true    -> execute_erl:execute_new_shell(FilePaths, ReportDirectory) % This version involves creating a new shell for evaluation, then parsing the results
+                  end,
   io:format("~n~nErlang execution result: ~p~n~n", [ErlangResults]),
   io:format("~n~nCoq execution result: ~p~n~n", [CoqResults]),
   Success = compare_results(ErlangResults, CoqResults),

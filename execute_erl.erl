@@ -1,6 +1,6 @@
 -module(execute_erl).
 
--export([execute/1, setup/0, report/0, compile/2, spawn_function/2]).
+-export([execute/1, execute_new_shell/2, setup/0, report/0, compile/2, spawn_function/2]).
 
 -define(GENERATOR, "generator/ebin/gen_erlang.beam").
 -define(ERL_FILENAME, "./reports/erl_coverage.csv").
@@ -13,6 +13,7 @@ compile(FilePaths, ReportDirectory) ->
   lists:foreach(fun(Path) -> compile:file(Path, [{outdir, ReportDirectory}]) end, FilePaths).
 
 run(Module, ReportDirectory) ->
+    io:format("~n~n~s~n~s~n~n", [Module, ReportDirectory]),
     exec:shell_exec(
         io_lib:format("erl -pa ~s -noshell -eval \"io:format('~~p', [~s:main()])\" -eval 'init:stop()'", [
             ReportDirectory,
@@ -20,47 +21,9 @@ run(Module, ReportDirectory) ->
         ])
     ).
 
-% wrapper
-%execute(Test, ModuleName, ReportDirectory, Tracing, PID) ->
-%  Res = execute(Test, ModuleName, Tracing, ReportDirectory),
-  % io:format("Erlang is ready!: ~p~n", [element(2, Res)]),  
-%  PID ! {Res, erl_res}.
 
-%execute(Test, ModuleName, _Tracing, ReportDirectory) ->
-    % compile(Test++".erl") >>= run(ModuleName) >>= parse
-%    case compile(Test ++ ".erl", ReportDirectory) of
-%        {0, _} ->
-%            case run(ModuleName, ReportDirectory) of
-                %% -----------------------------------------
-                %% Erlang execution succeeded
-%                {0, Output} ->
-%                    {ok, misc:parse(Output)};
-                %% -----------------------------------------
-                %% Erlang execution failed
-%                {RetVal, Output} ->
-%                    try
-                      %% select the exception reason from the output string
-%                      ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
-                    % If there are details beside the reason  
-%                    if hd(ToParse) == ${ -> {ok, list_to_atom(tl(ToParse))};
-                    % If there are no details beside the reason
-%                       true              -> {ok, list_to_atom(ToParse)}
-%                      end
-%                    catch
-%                      _ -> {error,
-%                              io_lib:format(
-%                                  "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
-%                                  [ModuleName, RetVal, Output]
-%                              )}
-%                    end
-                %% -----------------------------------------
-%            end;
-%        _ ->
-%            {error, io:format("execute_erlang: failed to compile module ~p~n", [ModuleName])}
-%    end.
-
-
-% Hacking to avoid EQC to shut down testing:
+%% ---------------------------------------------------------------------------
+% Workaround to avoid EQC to shut down testing:
 spawn_function(Main, Mod) ->
   Main ! {ok, Mod:main()}.
 
@@ -78,7 +41,42 @@ execute(FilePaths) ->
     Mods = [code:load_abs(misc:remove_extension(F)) || F <- FilePaths],
     [evaluate_module(Mod) || {_, Mod} <- Mods].
 
-%% ---------------------------------------------------------------------
+%% ---------------------------------------------------------------------------
+
+execute_new_shell(FilePaths, ReportDirectory) ->
+  [begin
+     ModName = misc:remove_extension(misc:remove_directory(F)),
+     {list_to_atom(ModName), evaluate_module_new_shell(ModName, ReportDirectory)}
+   end || F <- FilePaths].
+
+evaluate_module_new_shell(ModuleName, ReportDirectory) ->
+    case run(ModuleName, ReportDirectory) of
+        %% -----------------------------------------
+        %% Erlang execution succeeded
+        {0, Output} ->
+            misc:parse(Output);
+        %% -----------------------------------------
+        %% Erlang execution failed
+        {RetVal, Output} ->
+            try
+              %% select the exception reason from the output string
+              ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
+            % If there are details beside the reason  
+            if hd(ToParse) == ${ -> list_to_atom(tl(ToParse));
+            % If there are no details beside the reason
+               true              -> list_to_atom(ToParse)
+              end
+            catch
+              _ -> {error,
+                      io_lib:format(
+                          "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
+                          [ModuleName, RetVal, Output]
+                      )}
+            end
+        %% -----------------------------------------
+    end.
+
+%% ---------------------------------------------------------------------------
 %% Erlang Generator Coverage Measurement
 
 setup() ->
