@@ -1,12 +1,16 @@
 -module(execute_erl).
 
--export([execute/5, setup/0, report/0]).
+-export([execute/1, setup/0, report/0, compile/2, spawn_function/2]).
 
--define(GENERATOR, "generator/ebin/erlgen.beam").
+-define(GENERATOR, "generator/ebin/gen_erlang.beam").
 -define(ERL_FILENAME, "./reports/erl_coverage.csv").
 
-compile(Path, ReportDirectory) ->
-    exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~s\"", [ReportDirectory, Path])).
+% TODO: deprecated, remove this:
+%compile(Path, ReportDirectory) ->
+%    exec:shell_exec(io_lib:format("erlc -o ~s -W0 \"~s\"", [ReportDirectory, Path])).
+
+compile(FilePaths, ReportDirectory) ->
+  lists:foreach(fun(Path) -> compile:file(Path, [{outdir, ReportDirectory}]) end, FilePaths).
 
 run(Module, ReportDirectory) ->
     exec:shell_exec(
@@ -17,52 +21,68 @@ run(Module, ReportDirectory) ->
     ).
 
 % wrapper
-execute(Test, ModuleName, ReportDirectory, Tracing, PID) ->
-  Res = execute(Test, ModuleName, Tracing, ReportDirectory),
+%execute(Test, ModuleName, ReportDirectory, Tracing, PID) ->
+%  Res = execute(Test, ModuleName, Tracing, ReportDirectory),
   % io:format("Erlang is ready!: ~p~n", [element(2, Res)]),  
-  PID ! {Res, erl_res}.
+%  PID ! {Res, erl_res}.
 
-execute(Test, ModuleName, _Tracing, ReportDirectory) ->
+%execute(Test, ModuleName, _Tracing, ReportDirectory) ->
     % compile(Test++".erl") >>= run(ModuleName) >>= parse
-    case compile(Test ++ ".erl", ReportDirectory) of
-        {0, _} ->
-            case run(ModuleName, ReportDirectory) of
+%    case compile(Test ++ ".erl", ReportDirectory) of
+%        {0, _} ->
+%            case run(ModuleName, ReportDirectory) of
                 %% -----------------------------------------
                 %% Erlang execution succeeded
-                {0, Output} ->
-                    {ok, misc:parse(Output)};
+%                {0, Output} ->
+%                    {ok, misc:parse(Output)};
                 %% -----------------------------------------
                 %% Erlang execution failed
-                {RetVal, Output} ->
-                    try
+%                {RetVal, Output} ->
+%                    try
                       %% select the exception reason from the output string
-                      ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
+%                      ToParse = lists:takewhile(fun(X) -> X /= $, end, tl(lists:dropwhile(fun(X) -> X /= ${ end, tl(Output)))),
                     % If there are details beside the reason  
-                    if hd(ToParse) == ${ -> {ok, list_to_atom(tl(ToParse))};
+%                    if hd(ToParse) == ${ -> {ok, list_to_atom(tl(ToParse))};
                     % If there are no details beside the reason
-                       true              -> {ok, list_to_atom(ToParse)}
-                      end
-                    catch
-                      _ -> {error,
-                              io_lib:format(
-                                  "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
-                                  [ModuleName, RetVal, Output]
-                              )}
-                    end
+%                       true              -> {ok, list_to_atom(ToParse)}
+%                      end
+%                    catch
+%                      _ -> {error,
+%                              io_lib:format(
+%                                  "execute_erlang: failed to run command module=~p ret=~p output=~p~n",
+%                                  [ModuleName, RetVal, Output]
+%                              )}
+%                    end
                 %% -----------------------------------------
-            end;
-        _ ->
-            {error, io:format("execute_erlang: failed to compile module ~p~n", [ModuleName])}
+%            end;
+%        _ ->
+%            {error, io:format("execute_erlang: failed to compile module ~p~n", [ModuleName])}
+%    end.
+
+
+% Hacking to avoid EQC to shut down testing:
+spawn_function(Main, Mod) ->
+  Main ! {ok, Mod:main()}.
+
+evaluate_module(Mod) ->
+    process_flag(trap_exit, true),
+    Pid = spawn_link(execute_erl, spawn_function, [self(), Mod]),
+    receive
+      {ok, RetVal} -> {Mod, RetVal};
+      {'EXIT', _, Reason} when Reason /= normal -> {Mod, element(1,Reason)}; % normal termination signal somehow is faster than the message sometimes
+      Else -> io:format("~n~n~nWrong result format: ~p~n~n~n", [Else])
     end.
 
-
+execute(FilePaths) ->
+    process_flag(trap_exit, true),
+    Mods = [code:load_abs(misc:remove_extension(F)) || F <- FilePaths],
+    [evaluate_module(Mod) || {_, Mod} <- Mods].
 
 %% ---------------------------------------------------------------------
 %% Erlang Generator Coverage Measurement
 
 setup() ->
-    cover:compile_beam(?GENERATOR)
-.
+    cover:compile_beam(?GENERATOR).
 
 generators() ->
     [function, funclause, pattern, statement, match_expr, application, io_statement, boolean_literal, 

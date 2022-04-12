@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([execute/5, setup/0, report/0, update_coverage/1, parse_coq_result/2]).
+-export([setup/0, report/0, update_coverage/1, parse_coq_result/2, execute/3]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 -define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
@@ -37,8 +37,8 @@ parse_coq_result(Output, Tracing) ->
           %% Coq result is a correct value
             ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
             if Tracing -> [Result, Trace, BIFTrace] = string:split(ToParse, "%", all),
-                          {ok, misc:parse(Result), misc:parse(Trace), misc:parse(BIFTrace)};
-               true    -> {ok, misc:parse(ToParse)}
+                          {misc:parse(Result), misc:parse(Trace), misc:parse(BIFTrace)};
+               true    -> {misc:parse(ToParse)}
             end;
           %% -----------------------------------------
         _ ->
@@ -50,13 +50,13 @@ parse_coq_result(Output, Tracing) ->
                       ToParse = lists:takewhile(fun(X) -> X /= $" end, Tail),
                       Result = 
                         if Tracing -> [Exception, T, BIFT] = string:split(ToParse, "%", all),
-                                      {ok, misc:parse(Exception), misc:parse(T), misc:parse(BIFT)};
-                           true    -> {ok, misc:parse(ToParse)}
+                                      {misc:parse(Exception), misc:parse(T), misc:parse(BIFT)};
+                           true    -> {misc:parse(ToParse)}
                         end,
                       case Result of
                         % If there are details beside the reason
-                         {_, {_, Reason, _}, RuleTrace, BIFTrace} -> {ok, Reason, RuleTrace, BIFTrace};
-                         {_, {_, Reason, _}}                      -> {ok, Reason}
+                         {{_, Reason, _}, RuleTrace, BIFTrace} -> {Reason, RuleTrace, BIFTrace};
+                         {{_, Reason, _}}                      -> {Reason}
                         % If there are no details
                         % {{_, Reason, _}, RuleTrace, BIFTrace}      -> {ok, Reason, RuleTrace, BIFTrace};
                         % {_, {_, Reason, _}                             -> {ok, Reason}
@@ -69,19 +69,23 @@ parse_coq_result(Output, Tracing) ->
     end
     .
 
-convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing) ->
-    misc:write_to_file(ReportDirectory ++ BaseName ++ ".v", cst_to_ast:from_erl(TestPath, Tracing)).
-
 % wrapper
-execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
-  Res = execute(TestPath, BaseName, ReportDirectory, Tracing),
-  % io:format("Coq is ready!: ~p~n", [element(2, Res)]),
-  PID ! {Res, coq_res}.
+% TODO deprecated
+%execute(TestPath, BaseName, ReportDirectory, Tracing, PID) ->
+%  Res = execute(TestPath, BaseName, ReportDirectory, Tracing),
+%  % io:format("Coq is ready!: ~p~n", [element(2, Res)]),
+%  PID ! {Res, coq_res}.
 
-execute(TestPath, BaseName, ReportDirectory, Tracing) ->
-    convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),
-    Output = compile_coq(BaseName, ReportDirectory),
-    parse_coq_result(Output, Tracing).
+% TODO deprecated
+%execute(TestPath, BaseName, ReportDirectory, Tracing) ->
+%    convert_erl_to_coq(TestPath, BaseName, ReportDirectory, Tracing),
+%    Output = compile_coq(BaseName, ReportDirectory),
+%    parse_coq_result(Output, Tracing).
+
+execute(FilePaths, ReportDirectory, Tracing) ->
+  ModuleNames = cst_to_ast:from_erl(FilePaths, ReportDirectory, Tracing),
+  [{ModName, parse_coq_result(compile_coq(atom_to_list(ModName), ReportDirectory), Tracing)} || ModName <- ModuleNames].
+   
 
 
 %% ---------------------------------------------------------------------

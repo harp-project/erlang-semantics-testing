@@ -11,10 +11,10 @@ remove_directory(Path) ->
     end.
 
 write_to_file(Filename, Content) ->
-    write_to_file(Filename, Content, write).
+    write_to_file(Filename, Content, [write, directory]).
 
-write_to_file(Filename, Content, Mode) ->
-    case file:open(Filename, [Mode]) of
+write_to_file(Filename, Content, Modes) ->
+    case file:open(Filename, Modes) of
         {ok, Fd} ->
             file:write(Fd, Content),
             file:close(Fd);

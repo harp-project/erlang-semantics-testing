@@ -12,10 +12,10 @@
 
 -define(REPORT_DIRECTORY, "./reports/").
 -define(SHRINKING, false).
--define(TRACING, true).
--define(GHC_EXPORT, true).
--define(GEN_REC_LIMIT, 10).
--define(GEN_SIZE, 4).
+-define(TRACING, false).
+-define(GHC_EXPORT, false).
+-define(GEN_REC_LIMIT, 2).
+-define(GEN_SIZE, 2).
 -define(GEN_REC_WEIGHT, 1).
 
 %% ---------------------------------------------------------------------
@@ -28,76 +28,53 @@ mktmpdir() ->
     io:format("Report Directory created: ~s~n", [DirPath]),
     DirPath.
 
-report(Test, ReportDirectory, Result, Success) ->
-    misc:write_to_file(ReportDirectory ++ Test ++ ".result", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
+report(ReportDirectory, Result, Success) ->
+    misc:write_to_file(ReportDirectory ++ "result.out", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
-       false -> io:format("~n ~s failed~n", [Test]),
+       false -> io:format("~n Test failed~n", [misc:remove_directory(ReportDirectory)]),
                 io:format("X");
        true  -> io:format(".")
     end.
 
-compare_results({ErlResult, CoqResult, KResult}) ->
-    case ErlResult of
-        {ok, ErlVal} -> begin
-                            case CoqResult of
-                                {ok, CoqVal, _, _} -> CoqVal == ErlVal;
-                                {ok, CoqVal}       -> CoqVal == ErlVal;
-                                _                  -> false
-                            end and
-                            case KResult of
-                                {_, KVal, _} -> KVal == ErlVal orelse
-                                                case is_list(KVal) of
-                                                % In case of parsing ambiguity (potential internal bug in K 3.6):
-                                                    true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
-                                                    false -> false
-                                                end;
-                                {_ , KVal}   -> KVal == ErlVal orelse
-                                                 case is_list(KVal) of
-                                                    % In case of parsing ambiguity (potential internal bug in K 3.6):
-                                                     true  -> lists:prefix("Illegal K result format: ~nidentity crisis:", KVal);
-                                                     false -> false
-                                                 end;
-                                _             -> false
-                            end
-                        end;
-        _            -> false
-    end;
-compare_results(_) -> io:format("Illegal result format!~n"), false.
+compare_results(ErlResults, CoqResults) ->
+    % in the future, we can parallelize the funcitonality, thus the results should be compared in an ordered way
+    OrderedErlResults = lists:sort(fun({ModName1, _}, {ModName2, _}) -> ModName1 < ModName2 end, ErlResults), 
+    OrderedCoqResults = lists:sort(fun({ModName1, _}, {ModName2, _}) -> ModName1 < ModName2 end, CoqResults),
+    List = lists:zip(OrderedErlResults, OrderedCoqResults),
+    lists:foldr(fun({{_, ErlResult}, {_, {CoqResult}}}, Acc)       -> (ErlResult == CoqResult) and Acc; % non-traced Coq
+                   ({{_, ErlResult}, {_, {CoqResult, _, _}}}, Acc) -> (ErlResult == CoqResult) and Acc; % traced Coq
+                   (_,                 _)                          -> io:format("Illegal result format!~n") end, 
+                true, List).
 
--spec test_case(string(), string()) -> boolean().
-test_case(Test, ReportDirectory) ->
-    BaseName = misc:remove_extension(Test),
-    ModuleName = misc:remove_directory(BaseName),
-    spawn(execute_erl, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
-    case ?GHC_EXPORT of
-        false -> spawn(execute_ghc, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]);
-        true  -> spawn(execute_coq, execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()])
-    end,
-    spawn(execute_k  , execute, [BaseName, ModuleName, ReportDirectory, ?TRACING, self()]),
-    Result = {
-    receive
-        {ErlResult, erl_res} -> ErlResult
-    end,
-    receive
-        {CoqResult, coq_res}    -> CoqResult
-    end,
-    receive
-        {KResult, k_res}        -> KResult
-    end},
-    Success = compare_results(Result),
-    report(ModuleName, ReportDirectory, Result, Success),
-    if 
-      ?TRACING -> execute_coq:update_coverage(element(2,Result)),
-                  execute_k:update_coverage(element(3,Result));
+check_cases(FilePaths, ReportDirectory) ->
+  % Compile Erlang
+  execute_erl:compile(FilePaths, ReportDirectory),
+  % Compile Coq or Haskell
+  CoqResults =
+      case ?GHC_EXPORT of
+          true  -> io:format("GHC Export is not supported yet~n");
+          false -> execute_coq:execute(FilePaths, ReportDirectory, ?TRACING)
+      end,
+  % Execute Erlang
+  ErlangResults = execute_erl:execute(FilePaths),
+  io:format("~n~nErlang execution result: ~p~n~n", [ErlangResults]),
+  io:format("~n~nCoq execution result: ~p~n~n", [CoqResults]),
+  Success = compare_results(ErlangResults, CoqResults),
+  report(ReportDirectory, {ErlangResults, CoqResults}, Success),
+  if 
+      ?TRACING -> io:format("Tracing is not supported yet~n");
+                  % execute_coq:update_coverage(element(2,Result)),
+                  %execute_k:update_coverage(element(3,Result));
       true     -> ok % do nothing
     end,
-    Success.
+  Success
+  .
 
 %% ---------------------------------------------------------------------
 
 unit_test(Tests) when is_list(Tests) ->
     ReportDirectory = mktmpdir(),
-    [test_case(Test, ReportDirectory) || Test <- Tests].
+    [check_cases([Test], ReportDirectory) || Test <- Tests].
 
 %% ---------------------------------------------------------------------
 
@@ -114,7 +91,7 @@ prettyprint_generated_module(T, ReportDirectory) ->
     {match,[{Pos,Len}]} = re:run(ProgramText, "test[0-9]+_module[0-9]+", [{capture, first}]),
     ModuleName = string:substr(ProgramText, Pos+1, Len),
     FilePath = ReportDirectory ++ ModuleName ++ ".erl",
-    misc:write_to_file(FilePath, ProgramText, write),
+    misc:write_to_file(FilePath, ProgramText),
     FilePath.
 
 random_test(NumTests) ->
@@ -125,12 +102,15 @@ random_test(NumTests) ->
     G = resize(?GEN_SIZE, gen_erlang:gen_modules(ModCnt, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
     G2 = ?LET(M, G, proplists:get_value(value, M)),
     G3 = ?SUCHTHAT(Ts, G2,
-                   lists:all(fun(T) -> true end, Ts)),
+                   lists:all(fun(T) -> is_compilable(T) end, Ts)),
     P = ?FORALL(Ts, if ?SHRINKING -> G3; true -> noshrink(G3) end,
           %?WHENFAIL(io:format("~n~s~n", [erl_prettypr:format(eqc_symbolic:eval(T))]),
             begin
-                FilePaths = [prettyprint_generated_module(T, ReportDirectory) || T <- Ts],
-                % test_case(FilePath, ReportDirectory)
+                TestPath = ReportDirectory ++ integer_to_list(get(test_id)) ++ "/",
+                filelib:ensure_dir(TestPath),
+                FilePaths = [prettyprint_generated_module(T, TestPath) || T <- Ts],
+                Success = check_cases(FilePaths, TestPath),
+                io:format("Success : ~p~n~n", [Success]),
                 % TODO compile all files in FilePaths, execute some functions and compare the results
                 put(test_id, get(test_id)+1),
                 true
