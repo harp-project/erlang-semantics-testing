@@ -11,12 +11,12 @@
 %% OPTIONS
 
 -define(REPORT_DIRECTORY, "./reports/").
--define(SHRINKING, false).
--define(TRACING, false).
--define(GHC_EXPORT, true).
--define(GEN_REC_LIMIT, 2).
--define(GEN_SIZE, 2).
--define(GEN_REC_WEIGHT, 1).
+-define(SHRINKING, true).     % Automatic simplification of counterexamples
+-define(TRACING, false).      % For coverage measurement
+-define(GHC_EXPORT, true).    % Coq or GHC evaluation
+-define(GEN_REC_LIMIT, 12).   % Depth limit for recursive generation
+-define(GEN_SIZE, 25).        % Complexity of expressions
+-define(GEN_REC_WEIGHT, 0.3). % Propability of choosing a recursive expression or an atomic expression
 -define(NATIVE, false). % Erlang evaluation should happen inside this shell, or not
 
 %% ---------------------------------------------------------------------
@@ -115,7 +115,7 @@ random_test(NumTests) ->
                 filelib:ensure_dir(TestPath),
                 FilePaths = [prettyprint_generated_module(T, TestPath) || T <- Ts],
                 Success = check_cases(FilePaths, TestPath),
-                io:format("Success : ~p~n~n", [Success]),
+                % io:format("Success : ~p~n~n", [Success]),
                 % TODO compile all files in FilePaths, execute some functions and compare the results
                 put(test_id, get(test_id)+1),
                 true
