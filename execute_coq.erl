@@ -105,7 +105,7 @@ update_one_coverage(Result) ->
   end.
 
 update_coverages(Results) ->
-  [update_one_coverage(Result) || Result <- Results].
+  [update_one_coverage(Result) || {_, Result} <- Results].
 
 %% RULE CATEGORIES
 
