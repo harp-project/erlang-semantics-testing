@@ -19,7 +19,7 @@ write_to_file(Filename, Content, Modes) ->
             file:write(Fd, Content),
             file:close(Fd);
         {Status, Msg} ->
-            io:format("Error opening file ~s: ~s", [Status, Msg])
+            io:format("Error opening file ~s - ~s: ~s", [Filename, Status, Msg])
     end.
 
 parse(Expression) ->
@@ -32,7 +32,7 @@ report_coverage_to_csv(Map, Filename) ->
   StatLine = maps:fold(fun(_, V, Acc) -> integer_to_list(V) ++ ";" ++ Acc end, "\n", Map), % "~n" does not work here, only "\n"
   case filelib:is_regular(Filename) of
     %% No header needed
-    true  -> misc:write_to_file(Filename, StatLine, append);
+    true  -> misc:write_to_file(Filename, StatLine, [append]);
     
     %% header needed
     false ->

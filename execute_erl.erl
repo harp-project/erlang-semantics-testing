@@ -105,7 +105,7 @@ report() ->
                         % io:format("~n~nErlang coverage data: ~p~n~n", [CovMap])
                         misc:report_coverage_to_csv(CovMap, ?ERL_FILENAME)
                     end;
-        _           -> io:format("Corrupt generator coverage data!")
+        P           -> io:format("Corrupt generator coverage data!~p~n~n", [P])
     end,
     misc:hline()
 .
