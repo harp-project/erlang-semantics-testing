@@ -14,11 +14,11 @@
 -define(SHRINKING, false).     % Automatic simplification of counterexamples
 -define(TRACING, true).      % For coverage measurement
 -define(GHC_EXPORT, true).    % Coq or GHC evaluation
--define(GEN_REC_LIMIT, 2).   % Depth limit for recursive generation
--define(GEN_SIZE, 2).        % Complexity of expressions
--define(GEN_REC_WEIGHT, 1). % Propability of choosing a recursive expression or an atomic expression
+-define(GEN_REC_LIMIT, 10).   % Depth limit for recursive generation
+-define(GEN_SIZE, 10).        % Complexity of expressions
+-define(GEN_REC_WEIGHT, 0.5). % Propability of choosing a recursive expression or an atomic expression
 -define(NATIVE, false). % Erlang evaluation should happen inside this shell, or not
--define(MODCNT, 3). % Module count
+-define(MODCNT, 5). % Module count
 
 %% ---------------------------------------------------------------------
 
@@ -63,8 +63,8 @@ check_cases(FilePaths, ReportDirectory) ->
                                                                 % executing the generated code
                     true    -> execute_erl:execute_new_shell(FilePaths, ReportDirectory) % This version involves creating a new shell for evaluation, then parsing the results
                   end,
-  io:format("~n~nErlang execution result: ~p~n~n", [ErlangResults]),
-  io:format("~n~nCoq execution result: ~p~n~n", [CoqResults]),
+  %io:format("~n~nErlang execution result: ~p~n~n", [ErlangResults]),
+  %io:format("~n~nCoq execution result: ~p~n~n", [CoqResults]),
   Success = compare_results(ErlangResults, CoqResults),
   report(ReportDirectory, {ErlangResults, CoqResults}, Success),
   if 

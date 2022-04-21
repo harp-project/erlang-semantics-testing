@@ -79,7 +79,10 @@ evaluate_module_new_shell(ModuleName, ReportDirectory) ->
 %% Erlang Generator Coverage Measurement
 
 setup() ->
-    cover:compile_beam(?GENERATOR).
+    case cover:compile_beam(?GENERATOR) of
+      {ok, _} -> ok;
+      _ -> io:format("Warning: Erlang tracing setup failed!")
+    end.
 
 generators() ->
     [function, funclause, pattern, statement, match_expr, application, io_statement, boolean_literal, 
@@ -89,7 +92,7 @@ generators() ->
 report() ->
     misc:hline(),
     io:format("Erlang generator coverage data~n"),
-    case cover:analyse(erlgen, calls, function) of
+    case cover:analyse(gen_erlang, calls, function) of
         {ok, Stats} -> 
                     begin  
                         CovMap = lists:foldr(
