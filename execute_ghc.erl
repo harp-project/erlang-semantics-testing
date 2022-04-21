@@ -1,6 +1,6 @@
 -module(execute_ghc).
 
--export([execute/3, setup/0, report/0, update_coverage/1]).
+-export([execute/3, setup/0, report/0, update_coverages/1]).
 
 compile_and_run_ghc(BaseName, ReportDirectory, true) ->
     case exec:shell_exec( "ghc -dynamic -i BigStepSemanticsTraced.hs " ++ ReportDirectory ++ BaseName ++ ".hs" ) of
@@ -23,8 +23,8 @@ execute(FilePaths, ReportDirectory, Tracing) ->
 setup() ->
   execute_coq:setup().
 
-update_coverage(Result) ->
-  execute_coq:update_coverage(Result).
+update_coverages(Results) ->
+  execute_coq:update_coverages(Results).
 
 
 report() ->

@@ -40,7 +40,7 @@ report_coverage_to_csv(Map, Filename) ->
         HeaderLine = maps:fold(fun(K, _, Acc) -> if is_atom(K) -> atom_to_list(K);
                                                     true -> K
                                                  end ++ ";" ++ Acc end, "\n", Map),
-        misc:write_to_file(Filename, HeaderLine ++ StatLine, append)
+        misc:write_to_file(Filename, HeaderLine ++ StatLine, [append])
       end
   end
 .

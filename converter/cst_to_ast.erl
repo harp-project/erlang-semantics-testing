@@ -13,17 +13,15 @@ Compute result_value (fbs_expr ~p [] ~s \"mytestmodule\" 0 (ECall (ELit (Atom \"
 \n").
 % ~p : depth, ~s: modules, ~s: module name
 
-% TODO: update
 -define(functional_traced,
 "Require Core_Erlang.Core_Erlang_Coverage.
 Import Core_Erlang_Coverage.
 Import Core_Erlang_Syntax.Value_Notations.
 Import ListNotations.
+Open Scope string_scope.
 \n 
 Compute result_value (fbs_expr ~p init_logs [] ~s \"mytestmodule\" 0 (ECall (ELit (Atom \"~s\")) (ELit (Atom \"main\")) []) []). \n\n
 \n").
-
-% Compute result_value (fbs_expr ~p init_logs [] 0 (ELetRec  [~s] (EApp (EFunId (\"main\"%string,0)) [])) []). \n\n
 
 -define(functional_haskell,
 "module Main where
@@ -38,18 +36,18 @@ program =
   ECall (ELit (Atom \"~s\")) (ELit (Atom \"main\")) []
 \n").
 
-% TODO: update
+
 -define(functional_haskell_traced,
 "module Main where
 
 import qualified  Data.Maybe
 import BigStepSemanticsTraced
 
-main = Prelude.print Prelude.$ (result_value (fbs_helper ~p program))
+main = Prelude.print Prelude.$ (result_value (fbs_helper ~p ~s \"mytestmodule\" program))
 
 program :: Expression
 program =
-  ELetRec  [~s] (EApp (EFunId ((,) \"main\" 0)) ([]))
+  ECall (ELit (Atom \"~s\")) (ELit (Atom \"main\")) []
 \n").
 
 -define(functional_limit, 1000000).

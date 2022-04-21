@@ -11,13 +11,14 @@
 %% OPTIONS
 
 -define(REPORT_DIRECTORY, "./reports/").
--define(SHRINKING, true).     % Automatic simplification of counterexamples
--define(TRACING, false).      % For coverage measurement
--define(GHC_EXPORT, true).    % Coq or GHC evaluation
--define(GEN_REC_LIMIT, 12).   % Depth limit for recursive generation
--define(GEN_SIZE, 25).        % Complexity of expressions
--define(GEN_REC_WEIGHT, 0.3). % Propability of choosing a recursive expression or an atomic expression
+-define(SHRINKING, false).     % Automatic simplification of counterexamples
+-define(TRACING, true).      % For coverage measurement
+-define(GHC_EXPORT, false).    % Coq or GHC evaluation
+-define(GEN_REC_LIMIT, 2).   % Depth limit for recursive generation
+-define(GEN_SIZE, 2).        % Complexity of expressions
+-define(GEN_REC_WEIGHT, 1). % Propability of choosing a recursive expression or an atomic expression
 -define(NATIVE, false). % Erlang evaluation should happen inside this shell, or not
+-define(MODCNT, 1). % Module count
 
 %% ---------------------------------------------------------------------
 
@@ -67,8 +68,8 @@ check_cases(FilePaths, ReportDirectory) ->
   Success = compare_results(ErlangResults, CoqResults),
   report(ReportDirectory, {ErlangResults, CoqResults}, Success),
   if 
-      ?TRACING -> io:format("Tracing is not supported yet~n");
-                  % execute_coq:update_coverage(element(2,Result)),
+      ?TRACING -> %io:format("Tracing is not supported yet~n");
+                  execute_coq:update_coverages(CoqResults);
                   %execute_k:update_coverage(element(3,Result));
       true     -> ok % do nothing
     end,
@@ -102,9 +103,8 @@ prettyprint_generated_module(T, ReportDirectory) ->
 random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
-    ModCnt = 3,
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(?GEN_SIZE, gen_erlang:gen_modules(ModCnt, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
+    G = resize(?GEN_SIZE, gen_erlang:gen_modules(?MODCNT, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
     G2 = ?LET(M, G, proplists:get_value(value, M)),
     G3 = ?SUCHTHAT(Ts, G2,
                    lists:all(fun(T) -> is_compilable(T) end, Ts)),

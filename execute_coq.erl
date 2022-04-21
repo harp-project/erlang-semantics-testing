@@ -1,6 +1,6 @@
 -module(execute_coq).
 
--export([setup/0, report/0, update_coverage/1, parse_coq_result/2, execute/3]).
+-export([setup/0, report/0, update_coverages/1, parse_coq_result/2, execute/3]).
 
 -define(COQ_FILENAME, "./reports/coq_coverage.csv").
 -define(COQ_BIF_FILENAME, "./reports/coq_bif_coverage.csv").
@@ -96,13 +96,16 @@ setup() ->
     put(?COQ_RULE_LOC, misc:init_stat_map(semantic_rules())),
     put(?COQ_BIF_LOC, misc:init_stat_map(bifs())).
 
-update_coverage(Result) ->
+update_one_coverage(Result) ->
   case Result of
     %% [Erlresult, {Ok, {Coqresult, CoqTrace}} | Rest]
-    {_, _, RuleTrace, BIFTrace} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
+    {_, RuleTrace, BIFTrace} -> misc:process_trace(RuleTrace, ?COQ_RULE_LOC), 
                                    misc:process_trace(BIFTrace, ?COQ_BIF_LOC);
-    _                             -> #{}
+    _                        -> io:format("~n~nWrong format~n~n"), #{}
   end.
+
+update_coverages(Results) ->
+  [update_one_coverage(Result) || Result <- Results].
 
 %% RULE CATEGORIES
 
@@ -111,7 +114,7 @@ case_rules() -> ['_CASE', '_CASE_EX','_CASE_IFCLAUSE'].
 case_helper_rules() -> ['_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH'].
 apply_rules() -> ['_APP', '_APP_EX', '_APP_EX_PARAM', '_APP_EX_BADFUN', '_APP_EX_BADARITY'].
 list_rules() -> ['_CONS', '_NIL', '_CONS_HD_EX', '_CONS_TL_EX'].
-call_rules() -> ['_CALL', '_CALL_EX'].
+call_rules() -> ['_CALL', '_CALL_EX', '_CALL_MODULE', '_CALL_FEXP_EX', '_CALL_FEXP_FUN_CLAUSE_EX', '_CALL_MEXP_BADARG_EX', '_CALL_MEXP_EX'].
 primop_rules() -> ['_PRIMOP', '_PRIMOP_EX'].
 try_rules() -> ['_TRY', '_CATCH'].
 variable_rule() -> ['_VAR'].
@@ -129,7 +132,7 @@ single_rule() -> ['_SINGLE'].
 
 %% Semantics rules not including exceptional evaluation
 exceptionfree_rules() -> ['_LIST_CONS', '_LIST_EMPTY', '_CASE', '_CASE_TRUE', '_CASE_FALSE', '_CASE_NOMATCH',
-                          '_APP', '_CONS', '_NIL', '_CALL', '_PRIMOP', '_VAR', '_FUNID', '_LIT',
+                          '_APP', '_CONS', '_NIL', '_CALL', '_CALL_MODULE', '_PRIMOP', '_VAR', '_FUNID', '_LIT',
                           '_FUN', '_TUPLE', '_LET', '_SEQ', '_MAP', '_LETREC', '_VALUES'].
 
 %% All semantics rules
