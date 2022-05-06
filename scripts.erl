@@ -19,6 +19,8 @@
 -define(GEN_REC_WEIGHT, 0.5). % Propability of choosing a recursive expression or an atomic expression
 -define(NATIVE, false). % Erlang evaluation should happen inside this shell, or not
 -define(MODCNT, 5). % Module count
+% -define(GENERATOR_MODULE, gen_erlang).
+-define(GENERATOR_MODULE, gen_illformed_app).
 
 %% ---------------------------------------------------------------------
 
@@ -33,7 +35,7 @@ mktmpdir() ->
 report(ReportDirectory, Result, Success) ->
     misc:write_to_file(ReportDirectory ++ "result.out", io_lib:format("Result:~n~p~nVerdict: ~p~n", [Result, Success]), write),
     case Success of
-       false -> io:format("~n Test failed~n", [misc:remove_directory(ReportDirectory)]),
+       false -> io:format("~n Test failed: ~s~n", [misc:remove_directory(ReportDirectory)]),
                 io:format("X");
        true  -> io:format(".")
     end.
@@ -104,7 +106,7 @@ random_test(NumTests) ->
     ReportDirectory = mktmpdir(),
     put(test_id, 0),
     random:seed(erlang:monotonic_time(), erlang:unique_integer(), erlang:time_offset()), % random combination of the suggested functions instead of now()
-    G = resize(?GEN_SIZE, gen_erlang:gen_modules(?MODCNT, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
+    G = resize(?GEN_SIZE, ?GENERATOR_MODULE:gen_modules(?MODCNT, ?GEN_REC_LIMIT, ?GEN_REC_WEIGHT)),
     G2 = ?LET(M, G, proplists:get_value(value, M)),
     G3 = ?SUCHTHAT(Ts, G2,
                    lists:all(fun(T) -> is_compilable(T) end, Ts)),
@@ -118,7 +120,7 @@ random_test(NumTests) ->
                 % io:format("Success : ~p~n~n", [Success]),
                 % TODO compile all files in FilePaths, execute some functions and compare the results
                 put(test_id, get(test_id)+1),
-                true
+                Success
             end
           %)
         ),
