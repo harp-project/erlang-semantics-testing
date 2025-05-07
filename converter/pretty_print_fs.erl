@@ -34,7 +34,7 @@ pp_expr(E, Names) -> pp(E, Names).
 "From CoreErlang Require Import Syntax.
 Import ListNotations.
 \n
-Definition test := ELetRec [~s] (EApp (VVal (VFunId (~s, 1))) []).
+Definition test := ELetRec [~s] (EApp (VVal (VFunId (~s, 1))) [VVal VNil]).
 \n
 ").
 
