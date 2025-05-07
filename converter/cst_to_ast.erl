@@ -1,5 +1,5 @@
 -module(cst_to_ast).
--export([from_core/2, from_erl/2]).
+-export([from_core/2, from_erl/2, from_core/3, from_erl/3]).
 -include_lib("compiler/src/core_parse.hrl").
 
 -define(traditional,
@@ -65,6 +65,8 @@ program =
   ELetRec  [~s] (EApp (EFunId ((,) \"main\" 0)) ([]))
 \n").
 
+-define(frameStack,"~s").
+
 -define(functional_limit, 1000000).
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == true  -> functionalTraced; %functionalSemantic;
 map_boolean_to_semantic_selector(SemanticSelector) when SemanticSelector == false -> functionalSemantic.
@@ -75,16 +77,23 @@ from_erl(Path, SemanticSelector)  -> do_pp(compile:file(Path, [           to_cor
 from_core(Path, SemanticSelector) when is_boolean(SemanticSelector) -> from_core(Path, map_boolean_to_semantic_selector(SemanticSelector));
 from_core(Path, SemanticSelector) -> do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector).
 
+from_erl(Path, SemanticSelector, OutFile)  -> write_to_file(OutFile, do_pp(compile:file(Path, [           to_core, binary, no_copt]), SemanticSelector)).
+
+from_core(Path, SemanticSelector, OutFile) -> write_to_file(OutFile, do_pp(compile:file(Path, [from_core, to_core, binary, no_copt]), SemanticSelector)).
+
 format_cst(PPCST, functionalSemantic) -> io_lib:format(?functional, [?functional_limit, PPCST]);
 format_cst(PPCST, functionalTraced) -> io_lib:format(?functional_traced, [?functional_limit, PPCST]);
 format_cst(PPCST, functionalSemanticHaskell) -> io_lib:format(?functionalHaskell, [?functional_limit, PPCST]);
 format_cst(PPCST, functionalSemanticHaskellTraced) -> io_lib:format(?functionalHaskellTraced, [?functional_limit, PPCST]);
-format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]).
+format_cst(PPCST, traditionalSemantic) -> io_lib:format(?traditional, [PPCST]);
+format_cst(PPCST, frameStack) -> io_lib:format(?frameStack, [PPCST]).
 
 pp(V, functionalSemanticHaskell) ->
   pretty_print_ghc:pp(V);
 pp(V, functionalSemanticHaskellTraced) ->
   pretty_print_ghc:pp(V);
+pp(V, frameStack) ->
+  pretty_print_fs:pp_module(V);
 pp(V, _SemanticSelector) ->
   pretty_print_coq:pp(V).
 
@@ -95,4 +104,16 @@ do_pp(V, SemanticSelector) ->
      error            -> error;
     {error, _Es, _Ws} -> error
   end.
-  
+
+write_to_file(Filename, Content) ->
+    write_to_file(Filename, Content, write).
+
+write_to_file(Filename, Content, Mode) ->
+    case file:open(Filename, [Mode]) of
+        {ok, Fd} ->
+            file:write(Fd, Content),
+            file:close(Fd);
+        {Status, Msg} ->
+            io:format("Error opening file ~s: ~s", [Status, Msg])
+    end.
+
