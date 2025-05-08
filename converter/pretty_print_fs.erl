@@ -197,8 +197,11 @@ pp_pattern(#c_cons{hd=A,tl=B}) ->
   {StrA, NA} = pp_pattern(A),
   {StrB, NB} = pp_pattern(B),
   {stringformat("(PCons ~s ~s)", [StrA, StrB]), NA ++ NB};
-pp_pattern(#c_tuple{es=Es}) ->
+pp_pattern(#c_tuple{es=Es} = O) when is_tuple(Es) ->
   {Str, Ns} = pp_pattern_list(tuple_to_list(Es),";", fun pp_pattern/1),
+  {stringformat("(PTuple [~s])", [Str]), Ns};
+pp_pattern(#c_tuple{es=Es} = O) when is_list(Es) ->
+  {Str, Ns} = pp_pattern_list(Es,";", fun pp_pattern/1),
   {stringformat("(PTuple [~s])", [Str]), Ns};
 pp_pattern(#c_map{arg=_, es=Es,is_pat=_}) ->
   {Str, Ns} = pp_pattern_list(Es,";", fun pp_pattern/1),
@@ -223,7 +226,7 @@ pp_pattern(M) when is_map(M) ->
 pp_pattern(T) when is_tuple(T) ->
   {Str, Ns} = pp_pattern_list(tuple_to_list(T),";", fun pp_pattern/1),
   {stringformat("(PTuple [~s])", [Str]), Ns};
-pp_pattern(V) -> throw({unsupported_case, V}). %, io_lib:format("~p", [V]).
+pp_pattern(V) -> io_lib:format("~p", [V]), throw({unsupported_case, V}).
 
 %% Helpers for pp_pattern
 %% pp_pattern_list is almost the same as pp_list, but it also accumulates variable names
